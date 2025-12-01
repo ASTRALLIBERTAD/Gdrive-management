@@ -19,14 +19,14 @@ def main(page: ft.Page):
         """Switch to dashboard view"""
         page.controls.clear()
         dashboard = Dashboard(page, auth, show_login)
-        page.add(dashboard)
+        page.add(dashboard.get_view())   # <-- FIXED
         page.update()
     
     def show_login():
         """Switch to login view"""
         page.controls.clear()
         login = LoginView(page, auth, show_dashboard)
-        page.add(login)
+        page.add(login)  # LoginView IS a control, so this is OK
         page.update()
     
     # Check if already authenticated

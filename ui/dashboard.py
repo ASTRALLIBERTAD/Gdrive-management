@@ -1,736 +1,791 @@
+# dashboard.py
 import flet as ft
 from services.drive_service import DriveService
 import re
+import json
+import os
+
+FAVORITES_FILE = "favorites.json"
+
 
 class Dashboard:
-    """Main dashboard view with sidebar and folder listing"""
-    
+    """Main dashboard view with sidebar, folder listing, link paste & favorites"""
+
     def __init__(self, page, auth_service, on_logout):
         self.page = page
         self.auth = auth_service
         self.on_logout = on_logout
         self.drive = DriveService(auth_service.get_service())
-        
-        self.current_folder_id = 'root'
-        self.folder_stack = []
+
+        self.current_folder_id = "root"
+        self.current_folder_name = "My Drive"
+        self.folder_stack = []  # (folder_id, folder_name)
         self.selected_files = set()
-        self.current_view = "your_folders"  # Track current view
-        
-        # Get user info
+        self.current_view = "your_folders"  # your_folders | shared_drives | folder_detail
+
+        # user info
         user_info = self.auth.get_user_info()
-        self.user_email = user_info.get('emailAddress', 'User') if user_info else 'User'
-        
-        # UI Components
+        self.user_email = user_info.get("emailAddress", "User") if user_info else "User"
+
+        # UI controls
         self.search_field = ft.TextField(
             hint_text="Search",
             prefix_icon=ft.Icons.SEARCH,
             on_submit=self.handle_search,
             border_color=ft.Colors.GREY_400,
             filled=True,
-            expand=True
-        )
-        
-        self.folder_list = ft.Column(
-            spacing=0,
-            scroll=ft.ScrollMode.ALWAYS,
             expand=True,
-            height=None,
-            width=None
         )
-        
-        # Load initial folders
+
+        # Input for paste link (top of sidebar)
+        self.paste_link_field = ft.TextField(
+            hint_text="Paste shared folder link and press Enter",
+            on_submit=self.handle_paste_link,
+            expand=True,
+        )
+
+        # Favorites (loaded from JSON)
+        self.favorites = self.load_favorites()
+
+        # Folder list column (main content)
+        self.folder_list = ft.Column(spacing=0, scroll=ft.ScrollMode.ALWAYS, expand=True)
+        self.main_view_container = None
+
+        # Build the UI and load initial folders
+        self.page.title = "Drive Manager"
+        self.page.vertical_alignment = ft.MainAxisAlignment.START
+        self.page.horizontal_alignment = ft.CrossAxisAlignment.STRETCH
+
         self.load_your_folders()
-    
+
+    # -------------------------
+    # Favorites (simple JSON)
+    # -------------------------
+    def load_favorites(self):
+        if os.path.exists(FAVORITES_FILE):
+            try:
+                with open(FAVORITES_FILE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                print("Error loading favorites:", e)
+        # default structure
+        return {}
+
+    def save_favorites(self):
+        try:
+            with open(FAVORITES_FILE, "w", encoding="utf-8") as f:
+                json.dump(self.favorites, f, indent=2)
+        except Exception as e:
+            print("Error saving favorites:", e)
+
+    def add_favorite(self, subject, folder_id, folder_name):
+        self.favorites.setdefault(subject, [])
+        # avoid duplicates
+        if any(f["id"] == folder_id for f in self.favorites[subject]):
+            return False
+        self.favorites[subject].append({"id": folder_id, "name": folder_name})
+        self.save_favorites()
+        return True
+
+    def remove_favorite(self, subject, folder_id):
+        if subject not in self.favorites:
+            return False
+        self.favorites[subject] = [f for f in self.favorites[subject] if f["id"] != folder_id]
+        if len(self.favorites[subject]) == 0:
+            del self.favorites[subject]
+        self.save_favorites()
+        return True
+
+    # -------------------------
+    # Link utilities
+    # -------------------------
+    def extract_id_from_link(self, link):
+        """Extract folder ID from common Drive folder link formats"""
+        # common patterns:
+        # https://drive.google.com/drive/folders/<id>
+        # https://drive.google.com/open?id=<id>
+        # https://drive.google.com/drive/u/0/folders/<id>
+        if not link or not isinstance(link, str):
+            return None
+        # try folders path
+        m = re.search(r"/folders/([a-zA-Z0-9_-]+)", link)
+        if m:
+            return m.group(1)
+        # try open?id=
+        m = re.search(r"[?&]id=([a-zA-Z0-9_-]+)", link)
+        if m:
+            return m.group(1)
+        return None
+
+    # -------------------------
+    # Loading views
+    # -------------------------
     def load_your_folders(self):
-        """Load user's own folders from My Drive"""
+        """Load user's root folders (My Drive root)"""
         self.current_view = "your_folders"
+        self.current_folder_id = "root"
+        self.current_folder_name = "My Drive"
+        self.folder_stack = []
         self.folder_list.controls.clear()
-        
-        print("Loading your folders...")  # Debug
-        
+
         try:
-            # Get only folders from root
-            result = self.drive.list_files('root', page_size=100)
-            files = result['files']
-            
-            print(f"Total files in root: {len(files)}")  # Debug
-            
-            # Filter only folders
-            folders = [f for f in files if f.get('mimeType') == 'application/vnd.google-apps.folder']
-            
-            print(f"Total folders found: {len(folders)}")  # Debug
-            
-            for folder in folders:
-                # Count subfolders
-                subfolder_result = self.drive.list_files(folder['id'], page_size=1000)
-                subfolder_count = len([f for f in subfolder_result['files'] 
-                                      if f.get('mimeType') == 'application/vnd.google-apps.folder'])
-                
-                print(f"Folder: {folder['name']}, Subfolders: {subfolder_count}")  # Debug
-                
-                folder_item = self.create_folder_item(folder, subfolder_count)
-                self.folder_list.controls.append(folder_item)
-            
-            if len(folders) == 0:
+            result = self.drive.list_files("root", page_size=100)
+            files = result.get("files", [])
+            folders = [f for f in files if f.get("mimeType") == "application/vnd.google-apps.folder"]
+
+            if not folders:
                 self.folder_list.controls.append(
                     ft.Container(
-                        content=ft.Text("No folders found", color=ft.Colors.GREY_500),
-                        padding=20,
-                        bgcolor=ft.Colors.WHITE
+                        content=ft.Text("No folders found", color=ft.Colors.GREY_500), padding=20
                     )
                 )
-            
-            print(f"Total controls in folder_list: {len(self.folder_list.controls)}")  # Debug
-            print("Updating page...")  # Debug
-            self.page.update()
-            print("Page updated!")  # Debug
-            
+            else:
+                for folder in folders:
+                    # count subfolders
+                    sub_result = self.drive.list_files(folder["id"], page_size=100)
+                    sub_count = len([f for f in sub_result.get("files", []) if f.get("mimeType") == "application/vnd.google-apps.folder"])
+                    self.folder_list.controls.append(self.create_folder_item(folder, sub_count))
+
         except Exception as e:
-            print(f"Error loading folders: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    def load_shared_drives(self):
-        """Load shared drives"""
-        self.current_view = "shared_drives"
-        self.folder_list.controls.clear()
-        
-        try:
-            # Get shared drives
-            results = self.drive.service.drives().list(
-                pageSize=100,
-                fields="drives(id, name)"
-            ).execute()
-            
-            shared_drives = results.get('drives', [])
-            
-            for drive in shared_drives:
-                # Count folders in shared drive
-                folder_result = self.drive.list_files(drive['id'], page_size=1000)
-                folder_count = len([f for f in folder_result['files'] 
-                                   if f.get('mimeType') == 'application/vnd.google-apps.folder'])
-                
-                folder_item = self.create_folder_item(
-                    {'id': drive['id'], 'name': drive['name']},
-                    folder_count,
-                    is_shared_drive=True
-                )
-                self.folder_list.controls.append(folder_item)
-            
-            if len(shared_drives) == 0:
-                self.folder_list.controls.append(
-                    ft.Container(
-                        content=ft.Text("No shared drives found", color=ft.Colors.GREY_500),
-                        padding=20
-                    )
-                )
-        except Exception as e:
-            print(f"Error loading shared drives: {e}")
+            print("Error loading your folders:", e)
             self.folder_list.controls.append(
-                ft.Container(
-                    content=ft.Text("Error loading shared drives", color=ft.Colors.RED),
-                    padding=20
-                )
+                ft.Container(content=ft.Text("Error loading folders", color=ft.Colors.RED), padding=20)
             )
-        
+
         self.page.update()
-    
+
+    def load_shared_drives(self):
+        """Load shared drives (Team drives)"""
+        self.current_view = "shared_drives"
+        self.folder_stack = []
+        self.folder_list.controls.clear()
+
+        try:
+            results = self.drive.service.drives().list(pageSize=100, fields="drives(id, name)").execute()
+            shared_drives = results.get("drives", [])
+
+            if not shared_drives:
+                self.folder_list.controls.append(ft.Container(content=ft.Text("No shared drives found", color=ft.Colors.GREY_500), padding=20))
+            else:
+                for d in shared_drives:
+                    # show as folder item; clicking will open it
+                    fake_folder = {"id": d["id"], "name": d["name"], "mimeType": "application/vnd.google-apps.folder"}
+                    self.folder_list.controls.append(self.create_folder_item(fake_folder, 0, is_shared_drive=True))
+        except Exception as e:
+            print("Error loading shared drives:", e)
+            self.folder_list.controls.append(ft.Container(content=ft.Text("Error loading shared drives", color=ft.Colors.RED), padding=20))
+
+        self.page.update()
+
+    # -------------------------
+    # Folder / File views
+    # -------------------------
+    def show_folder_contents(self, folder_id, folder_name=None, is_shared_drive=False):
+        """Show detailed files/folders inside a folder_id"""
+        self.current_view = "folder_detail"
+        if folder_name:
+            display_name = folder_name
+        else:
+            # try to fetch info for name
+            info = self.drive.get_file_info(folder_id)
+            display_name = info.get("name") if info else folder_id
+
+        # push current for back
+        self.folder_stack.append((self.current_folder_id, self.current_folder_name))
+        self.current_folder_id = folder_id
+        self.current_folder_name = display_name
+
+        # rebuild folder_list
+        self.folder_list.controls.clear()
+
+        # Back button + title
+        back_btn = ft.Row(
+            [
+                ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=lambda e: self.go_back()),
+                ft.Text(display_name, size=18, weight=ft.FontWeight.BOLD),
+                ft.Row(
+                    [
+                        ft.ElevatedButton("Save to favorites", on_click=lambda e: self.open_save_favorite_dialog()),
+                        ft.ElevatedButton("Refresh", on_click=lambda e: self.refresh_folder_contents()),
+                    ],
+                    spacing=8,
+                ),
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        )
+        self.folder_list.controls.append(back_btn)
+
+        # Get folder contents
+        try:
+            result = self.drive.list_files(folder_id, page_size=200)
+            files = result.get("files", [])
+            if not files:
+                self.folder_list.controls.append(ft.Container(content=ft.Text("Folder is empty", color=ft.Colors.GREY_500), padding=20))
+            else:
+                for f in files:
+                    self.folder_list.controls.append(self.create_file_item(f))
+        except Exception as e:
+            print("Error listing folder contents:", e)
+            self.folder_list.controls.append(ft.Container(content=ft.Text("Error loading contents", color=ft.Colors.RED), padding=20))
+
+        self.page.update()
+
+    def refresh_folder_contents(self):
+        # re-open current folder
+        self.show_folder_contents(self.current_folder_id, self.current_folder_name)
+
+    def go_back(self):
+        if not self.folder_stack:
+            # go back to your folders view
+            self.load_your_folders()
+            return
+        fid, fname = self.folder_stack.pop()
+        self.current_folder_id = fid
+        self.current_folder_name = fname
+        if fid == "root":
+            self.load_your_folders()
+        else:
+            self.show_folder_contents(fid, fname)
+
+    # -------------------------
+    # UI Item creators
+    # -------------------------
     def create_folder_item(self, folder, subfolder_count, is_shared_drive=False):
-        """Create a folder list item with subfolder count"""
-        folder_name = folder['name'].upper() if len(folder['name']) < 20 else folder['name']
-        print(f"Creating folder item for: {folder_name}")  # Debug
-        
+        folder_name = folder.get("name", "Untitled")
+        display_name = folder_name if len(folder_name) < 40 else folder_name[:37] + "..."
+
         return ft.Container(
-            content=ft.Row([
-                ft.Text(
-                    folder_name,
-                    size=14,
-                    weight=ft.FontWeight.W_500,
-                    expand=True
-                ),
-                ft.Text(
-                    f"{subfolder_count} FOLDERS",
-                    size=12,
-                    color=ft.Colors.GREY_600
-                ),
-                ft.IconButton(
-                    icon=ft.Icons.MORE_VERT,
-                    icon_size=20,
-                    on_click=lambda e, f=folder: self.show_folder_menu(f, is_shared_drive)
-                )
-            ]),
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.FOLDER, size=24),
+                    ft.Column(
+                        [
+                            ft.Text(display_name, size=14, weight=ft.FontWeight.W_500),
+                            ft.Text(f"{subfolder_count} folders" if subfolder_count is not None else "", size=12, color=ft.Colors.GREY_600),
+                        ],
+                        spacing=2,
+                        expand=True,
+                    ),
+                    ft.IconButton(icon=ft.Icons.MORE_VERT, on_click=lambda e, f=folder: self.show_folder_menu(f, is_shared_drive)),
+                ],
+            ),
             padding=ft.padding.symmetric(horizontal=15, vertical=12),
             border=ft.border.only(bottom=ft.BorderSide(1, ft.Colors.GREY_300)),
             bgcolor=ft.Colors.WHITE,
-            on_click=lambda e, f=folder: self.open_folder(f, is_shared_drive)
+            on_click=lambda e, f=folder: self.open_folder(f, is_shared_drive),
         )
-    
-    def open_folder(self, folder, is_shared_drive=False):
-        """Open folder to show its contents"""
-        print(f"Opening folder: {folder['name']}")
-        self.show_folder_contents(folder['id'], folder['name'])
-    
-    def show_folder_contents(self, folder_id, folder_name):
-        """Show contents of a folder"""
-        self.folder_list.controls.clear()
-        
-        # Add back button
-        back_btn = ft.Container(
-            content=ft.Row([
-                ft.Icon(ft.Icons.ARROW_BACK, size=20),
-                ft.Text("Back", size=14, weight=ft.FontWeight.BOLD)
-            ]),
-            padding=15,
-            on_click=lambda e: self.go_back_to_list()
-        )
-        self.folder_list.controls.append(back_btn)
-        
-        # Add folder title
-        title = ft.Container(
-            content=ft.Text(
-                folder_name,
-                size=18,
-                weight=ft.FontWeight.BOLD
-            ),
-            padding=ft.padding.only(left=15, right=15, bottom=10)
-        )
-        self.folder_list.controls.append(title)
-        
-        # Get folder contents
-        result = self.drive.list_files(folder_id, page_size=100)
-        files = result['files']
-        
-        for file in files:
-            file_item = self.create_file_item(file)
-            self.folder_list.controls.append(file_item)
-        
-        if len(files) == 0:
-            self.folder_list.controls.append(
-                ft.Container(
-                    content=ft.Text("Folder is empty", color=ft.Colors.GREY_500),
-                    padding=20
-                )
-            )
-        
-        self.page.update()
-    
+
     def create_file_item(self, file):
-        """Create a file/folder list item for detailed view"""
-        is_folder = file.get('mimeType') == 'application/vnd.google-apps.folder'
+        is_folder = file.get("mimeType") == "application/vnd.google-apps.folder"
         icon = ft.Icons.FOLDER if is_folder else ft.Icons.INSERT_DRIVE_FILE
-        icon_color = ft.Colors.AMBER_700 if is_folder else ft.Colors.BLUE_GREY_400
-        
-        # Format size
-        size_str = "Folder"
-        if not is_folder and file.get('size'):
-            size = int(file.get('size'))
-            if size < 1024:
-                size_str = f"{size} B"
-            elif size < 1024 * 1024:
-                size_str = f"{size / 1024:.1f} KB"
-            elif size < 1024 * 1024 * 1024:
-                size_str = f"{size / (1024 * 1024):.1f} MB"
-            else:
-                size_str = f"{size / (1024 * 1024 * 1024):.1f} GB"
-        
+        size_str = "Folder" if is_folder else self.format_size(file.get("size"))
+
         return ft.Container(
-            content=ft.Row([
-                ft.Icon(icon, color=icon_color, size=24),
-                ft.Column([
-                    ft.Text(file['name'], size=14, weight=ft.FontWeight.W_500),
-                    ft.Text(size_str, size=12, color=ft.Colors.GREY_600)
-                ], spacing=2, expand=True),
-                ft.IconButton(
-                    icon=ft.Icons.MORE_VERT,
-                    icon_size=20,
-                    on_click=lambda e, f=file: self.show_file_menu(f)
-                )
-            ]),
+            content=ft.Row(
+                [
+                    ft.Icon(icon, size=24),
+                    ft.Column(
+                        [
+                            ft.Text(file.get("name", "Untitled"), size=14, weight=ft.FontWeight.W_500),
+                            ft.Text(size_str, size=12, color=ft.Colors.GREY_600),
+                        ],
+                        spacing=2,
+                        expand=True,
+                    ),
+                    ft.IconButton(icon=ft.Icons.MORE_VERT, on_click=lambda e, f=file: self.show_file_menu(f)),
+                ]
+            ),
             padding=ft.padding.symmetric(horizontal=15, vertical=10),
             border=ft.border.only(bottom=ft.BorderSide(1, ft.Colors.GREY_200)),
-            on_click=lambda e: self.handle_file_click(file) if is_folder else None
+            on_click=lambda e, f=file: self.handle_file_click(f) if is_folder else None,
         )
-    
+
+    def format_size(self, size):
+        try:
+            if not size:
+                return "Unknown size"
+            s = int(size)
+            if s < 1024:
+                return f"{s} B"
+            if s < 1024 * 1024:
+                return f"{s / 1024:.1f} KB"
+            if s < 1024 * 1024 * 1024:
+                return f"{s / (1024 * 1024):.1f} MB"
+            return f"{s / (1024 * 1024 * 1024):.1f} GB"
+        except:
+            return "Unknown size"
+
+    # -------------------------
+    # Actions
+    # -------------------------
+    def open_folder(self, folder, is_shared_drive=False):
+        self.show_folder_contents(folder["id"], folder.get("name", folder["id"]), is_shared_drive)
+
     def handle_file_click(self, file):
-        """Handle clicking on a file/folder in detailed view"""
-        if file.get('mimeType') == 'application/vnd.google-apps.folder':
-            self.show_folder_contents(file['id'], file['name'])
-    
-    def go_back_to_list(self):
-        """Go back to folder list"""
-        if self.current_view == "your_folders":
-            self.load_your_folders()
+        if file.get("mimeType") == "application/vnd.google-apps.folder":
+            self.show_folder_contents(file["id"], file["name"])
         else:
-            self.load_shared_drives()
-    
+            # show file info
+            self.show_file_info(file)
+
     def show_folder_menu(self, folder, is_shared_drive=False):
-        """Show menu for folder actions"""
-        def close_menu(e):
-            menu.open = False
-            self.page.update()
-        
-        menu = ft.AlertDialog(
-            title=ft.Text(folder['name']),
-            content=ft.Column([
-                ft.TextButton("Open", on_click=lambda e: [close_menu(e), self.open_folder(folder, is_shared_drive)]),
-                ft.TextButton("Rename", on_click=lambda e: [close_menu(e), self.rename_folder_dialog(folder)]),
-                ft.TextButton("Delete", on_click=lambda e: [close_menu(e), self.delete_folder_dialog(folder)]),
-            ], tight=True),
-            actions=[ft.TextButton("Cancel", on_click=close_menu)]
-        )
-        self.page.dialog = menu
-        menu.open = True
-        self.page.update()
-    
+        # Placeholder: in future, add options (open, save favorite, copy link)
+        self.open_folder(folder, is_shared_drive)
+
     def show_file_menu(self, file):
-        """Show menu for file actions"""
-        def close_menu(e):
-            menu.open = False
+        # pop menu: Rename, Delete, Info
+        def on_rename(e):
+            self.rename_file_dialog(file)
+            popup.open = False
             self.page.update()
-        
-        menu = ft.AlertDialog(
-            title=ft.Text(file['name']),
-            content=ft.Column([
-                ft.TextButton("Rename", on_click=lambda e: [close_menu(e), self.rename_file_dialog(file)]),
-                ft.TextButton("Delete", on_click=lambda e: [close_menu(e), self.delete_file_dialog(file)]),
-                ft.TextButton("Info", on_click=lambda e: [close_menu(e), self.show_file_info(file)]),
-            ], tight=True),
-            actions=[ft.TextButton("Cancel", on_click=close_menu)]
+
+        def on_delete(e):
+            self.delete_file_dialog(file)
+            popup.open = False
+            self.page.update()
+
+        def on_info(e):
+            self.show_file_info(file)
+            popup.open = False
+            self.page.update()
+
+        popup = ft.PopupMenuButton(
+            items=[
+                ft.PopupMenuItem(text="Info", on_click=on_info),
+                ft.PopupMenuItem(text="Rename", on_click=on_rename),
+                ft.PopupMenuItem(text="Delete", on_click=on_delete),
+            ]
         )
-        self.page.dialog = menu
-        menu.open = True
+        # open the popup (adds to page)
+        self.page.add(popup)
+        popup.open = True
         self.page.update()
-    
+
+    # -------------------------
+    # Create / Upload
+    # -------------------------
     def show_new_menu(self, e):
-        """Show menu for creating new folder or adding shared link"""
-        print("+ NEW button clicked!")  # Debug
-        
-        def close_menu(e):
-            print("Closing menu")  # Debug
-            menu.open = False
-            self.page.update()
-        
-        def create_folder_handler(e):
-            print("Create New Folder selected")  # Debug
-            close_menu(e)
-            self.create_new_folder(e)
-        
-        def add_link_handler(e):
-            print("Add Shared Drive Link selected")  # Debug
-            close_menu(e)
-            self.add_shared_link_dialog(e)
-        
-        menu = ft.AlertDialog(
-            title=ft.Text("New"),
-            content=ft.Column([
-                ft.ElevatedButton(
-                    "Create New Folder",
-                    icon=ft.Icons.CREATE_NEW_FOLDER,
-                    on_click=create_folder_handler,
-                    width=250
+        popup = ft.PopupMenuButton(
+            items=[
+                ft.PopupMenuItem(
+                    text="New Folder",
+                    on_click=lambda e: self.create_new_folder_dialog()
                 ),
-                ft.ElevatedButton(
-                    "Add Shared Drive Link",
-                    icon=ft.Icons.LINK,
-                    on_click=add_link_handler,
-                    width=250
+                ft.PopupMenuItem(
+                    text="Upload File",
+                    on_click=lambda e: self.select_file_to_upload()
                 ),
-            ], tight=True, spacing=10),
-            actions=[ft.TextButton("Cancel", on_click=close_menu)]
+            ]
         )
-        self.page.dialog = menu
-        menu.open = True
-        print("Menu dialog opened")  # Debug
+        self.page.add(popup)
+        popup.open = True
         self.page.update()
-    
-    def create_new_folder(self, e):
-        """Show create folder dialog"""
-        print("Create new folder dialog opened")  # Debug
-        name_field = ft.TextField(hint_text="Folder name", autofocus=True)
-        status_text = ft.Text("", color=ft.Colors.RED, size=12)
-        
+
+
+
+    def create_new_folder_dialog(self):
+        name_field = ft.TextField(label="Folder name", autofocus=True)
+
         def create(e):
-            print("Create button clicked")  # Debug
             folder_name = name_field.value.strip()
-            print(f"Folder name entered: '{folder_name}'")  # Debug
-            
             if folder_name:
-                status_text.value = "Creating folder..."
-                status_text.color = ft.Colors.BLUE
-                self.page.update()
-                
-                try:
-                    print(f"Attempting to create folder: {folder_name}")  # Debug
-                    result = self.drive.create_folder(folder_name, 'root')
-                    print(f"Create folder result: {result}")  # Debug
-                    
-                    if result:
-                        status_text.value = "Folder created successfully!"
-                        status_text.color = ft.Colors.GREEN
-                        self.page.update()
-                        
-                        # Close dialog and reload
-                        dialog.open = False
-                        self.page.update()
-                        print("Reloading folders...")  # Debug
-                        self.load_your_folders()
-                    else:
-                        status_text.value = "Failed to create folder"
-                        status_text.color = ft.Colors.RED
-                        self.page.update()
-                except Exception as ex:
-                    print(f"Exception creating folder: {ex}")  # Debug
-                    status_text.value = f"Error: {str(ex)}"
-                    status_text.color = ft.Colors.RED
-                    self.page.update()
-            else:
-                status_text.value = "Please enter a folder name"
-                status_text.color = ft.Colors.RED
-                self.page.update()
-        
+                created = self.drive.create_folder(folder_name, parent_id=self.current_folder_id)
+                if created:
+                    self.refresh_folder_contents()
+            dialog.open = False
+            self.page.update()
+
         dialog = ft.AlertDialog(
-            title=ft.Text("New Folder"),
-            content=ft.Column([
-                name_field,
-                status_text
-            ], tight=True, spacing=10),
+            title=ft.Text("Create New Folder"),
+            content=name_field,
             actions=[
                 ft.TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)),
                 ft.ElevatedButton("Create", on_click=create)
             ]
         )
+
         self.page.dialog = dialog
         dialog.open = True
         self.page.update()
-    
-    def add_shared_link_dialog(self, e):
-        """Show dialog to add shared Google Drive link"""
-        link_field = ft.TextField(
-            hint_text="Paste Google Drive link here",
-            autofocus=True,
-            multiline=False
-        )
-        status_text = ft.Text("", color=ft.Colors.RED, size=12)
-        
-        def add_link(e):
-            link = link_field.value.strip()
-            if link:
-                # Extract folder ID from link
-                folder_id = self.extract_folder_id(link)
-                if folder_id:
-                    status_text.value = "Accessing folder..."
-                    status_text.color = ft.Colors.BLUE
-                    self.page.update()
-                    
-                    # Try to access the folder
-                    try:
-                        folder_info = self.drive.get_file_info(folder_id)
-                        if folder_info:
-                            status_text.value = f"Success! Opening '{folder_info['name']}'"
-                            status_text.color = ft.Colors.GREEN
-                            self.page.update()
-                            
-                            # Close dialog and open the folder
-                            dialog.open = False
-                            self.page.update()
-                            self.show_folder_contents(folder_id, folder_info['name'])
-                        else:
-                            status_text.value = "Could not access folder. Check permissions."
-                            status_text.color = ft.Colors.RED
-                            self.page.update()
-                    except Exception as ex:
-                        status_text.value = f"Error: {str(ex)}"
-                        status_text.color = ft.Colors.RED
-                        self.page.update()
-                else:
-                    status_text.value = "Invalid Google Drive link"
-                    status_text.color = ft.Colors.RED
-                    self.page.update()
-        
-        dialog = ft.AlertDialog(
-            title=ft.Text("Add Shared Drive Link"),
-            content=ft.Column([
-                ft.Text("Paste a Google Drive folder link that has been shared with you:", size=12),
-                link_field,
-                status_text
-            ], tight=True, spacing=10),
-            actions=[
-                ft.TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)),
-                ft.ElevatedButton("Access Folder", on_click=add_link)
-            ]
-        )
-        self.page.dialog = dialog
-        dialog.open = True
+
+
+    def select_file_to_upload(self):
+        # Use Flet FilePicker
+        def on_result(e: ft.FilePickerResultEvent):
+            # e.files is list of FilePickerResult
+            if not e.files:
+                return
+            for f in e.files:
+                # f.path is local path
+                uploaded = self.drive.upload_file(f.path, parent_id=self.current_folder_id)
+                print("Uploaded:", uploaded)
+            self.refresh_folder_contents()
+
+        file_picker = ft.FilePicker(on_result=on_result)
+        # attach to page overlay and open
+        self.page.overlay.append(file_picker)
         self.page.update()
-    
-    def extract_folder_id(self, link):
-        """Extract folder ID from Google Drive link"""
-        # Pattern 1: https://drive.google.com/drive/folders/FOLDER_ID
-        pattern1 = r'drive\.google\.com/drive/folders/([a-zA-Z0-9_-]+)'
-        match = re.search(pattern1, link)
-        if match:
-            return match.group(1)
-        
-        # Pattern 2: https://drive.google.com/drive/u/0/folders/FOLDER_ID
-        pattern2 = r'drive\.google\.com/drive/u/\d+/folders/([a-zA-Z0-9_-]+)'
-        match = re.search(pattern2, link)
-        if match:
-            return match.group(1)
-        
-        # Pattern 3: Direct ID (if user just pastes the ID)
-        pattern3 = r'^[a-zA-Z0-9_-]+$'
-        if re.match(pattern3, link) and len(link) > 20:
-            return link
-        
-        return None
-    
-    def rename_folder_dialog(self, folder):
-        """Show rename dialog for folder"""
-        name_field = ft.TextField(value=folder['name'], autofocus=True)
-        
-        def rename(e):
-            new_name = name_field.value.strip()
-            if new_name and new_name != folder['name']:
-                result = self.drive.rename_file(folder['id'], new_name)
-                if result:
-                    self.load_your_folders()
-            dialog.open = False
-            self.page.update()
-        
-        dialog = ft.AlertDialog(
-            title=ft.Text("Rename Folder"),
-            content=name_field,
-            actions=[
-                ft.TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)),
-                ft.ElevatedButton("Rename", on_click=rename)
-            ]
-        )
-        self.page.dialog = dialog
-        dialog.open = True
-        self.page.update()
-    
-    def delete_folder_dialog(self, folder):
-        """Show delete confirmation for folder"""
-        def delete(e):
-            success = self.drive.delete_file(folder['id'])
-            if success:
-                self.load_your_folders()
-            dialog.open = False
-            self.page.update()
-        
-        dialog = ft.AlertDialog(
-            title=ft.Text("Confirm Delete"),
-            content=ft.Text(f"Are you sure you want to delete '{folder['name']}'?"),
-            actions=[
-                ft.TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)),
-                ft.ElevatedButton("Delete", on_click=delete, bgcolor=ft.Colors.RED)
-            ]
-        )
-        self.page.dialog = dialog
-        dialog.open = True
-        self.page.update()
-    
+        file_picker.pick_files()
+
+    # -------------------------
+    # Rename / Delete / Info
+    # -------------------------
     def rename_file_dialog(self, file):
-        """Show rename dialog"""
-        name_field = ft.TextField(value=file['name'], autofocus=True)
-        
+        name_field = ft.TextField(value=file["name"], autofocus=True)
+
         def rename(e):
             new_name = name_field.value.strip()
-            if new_name and new_name != file['name']:
-                result = self.drive.rename_file(file['id'], new_name)
+            if new_name and new_name != file["name"]:
+                result = self.drive.rename_file(file["id"], new_name)
                 if result:
-                    self.go_back_to_list()
+                    self.refresh_folder_contents()
             dialog.open = False
             self.page.update()
-        
+
         dialog = ft.AlertDialog(
-            title=ft.Text("Rename File"),
+            title=ft.Text("Rename"),
             content=name_field,
-            actions=[
-                ft.TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)),
-                ft.ElevatedButton("Rename", on_click=rename)
-            ]
+            actions=[ft.TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)), ft.ElevatedButton("Rename", on_click=rename)],
         )
         self.page.dialog = dialog
         dialog.open = True
         self.page.update()
-    
+
     def delete_file_dialog(self, file):
-        """Show delete confirmation"""
         def delete(e):
-            success = self.drive.delete_file(file['id'])
+            success = self.drive.delete_file(file["id"])
             if success:
-                self.go_back_to_list()
+                self.refresh_folder_contents()
             dialog.open = False
             self.page.update()
-        
+
         dialog = ft.AlertDialog(
             title=ft.Text("Confirm Delete"),
-            content=ft.Text(f"Are you sure you want to delete '{file['name']}'?"),
-            actions=[
-                ft.TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)),
-                ft.ElevatedButton("Delete", on_click=delete, bgcolor=ft.Colors.RED)
-            ]
+            content=ft.Text(f"Are you sure you want to delete '{file.get('name', '')}'?"),
+            actions=[ft.TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)), ft.ElevatedButton("Delete", on_click=delete, bgcolor=ft.Colors.RED)],
         )
         self.page.dialog = dialog
         dialog.open = True
         self.page.update()
-    
+
     def show_file_info(self, file):
-        """Show file information dialog"""
-        info = self.drive.get_file_info(file['id'])
+        info = self.drive.get_file_info(file["id"])
         if not info:
             return
-        
-        content = ft.Column([
-            ft.Text(f"Name: {info.get('name', 'N/A')}"),
-            ft.Text(f"Type: {info.get('mimeType', 'N/A')}"),
-            ft.Text(f"Size: {info.get('size', 'N/A')} bytes"),
-            ft.Text(f"Modified: {info.get('modifiedTime', 'N/A')}"),
-        ])
-        
-        dialog = ft.AlertDialog(
-            title=ft.Text("File Information"),
-            content=content,
-            actions=[ft.TextButton("Close", on_click=lambda e: self.close_dialog(dialog))]
+        content = ft.Column(
+            [
+                ft.Text(f"Name: {info.get('name', 'N/A')}"),
+                ft.Text(f"Type: {info.get('mimeType', 'N/A')}"),
+                ft.Text(f"Size: {info.get('size', 'N/A')} bytes"),
+                ft.Text(f"Modified: {info.get('modifiedTime', 'N/A')}"),
+                ft.TextButton("Open in Drive", on_click=lambda e: self.page.launch(info.get("webViewLink", "#"))),
+            ]
         )
+        dialog = ft.AlertDialog(title=ft.Text("File Information"), content=content, actions=[ft.TextButton("Close", on_click=lambda e: self.close_dialog(dialog))])
         self.page.dialog = dialog
         dialog.open = True
         self.page.update()
-    
-    def close_dialog(self, dialog):
-        """Close a dialog"""
-        dialog.open = False
-        self.page.update()
-    
+
+    # -------------------------
+    # Search & Paste link
+    # -------------------------
     def handle_search(self, e):
-        """Handle search query"""
         query = self.search_field.value.strip()
         if not query:
             self.load_your_folders()
             return
-        
-        # Implement search functionality
-        print(f"Searching for: {query}")
-    
+        # search across drive root (or consider using Drive API search)
+        results = self.drive.search_files(query)
+        self.folder_list.controls.clear()
+        if not results:
+            self.folder_list.controls.append(ft.Container(content=ft.Text("No results", color=ft.Colors.GREY_500), padding=20))
+        else:
+            for r in results:
+                # show either folder or file results
+                if r.get("mimeType") == "application/vnd.google-apps.folder":
+                    self.folder_list.controls.append(self.create_folder_item(r, 0))
+                else:
+                    self.folder_list.controls.append(self.create_file_item(r))
+        self.page.update()
+
+    def paste_link_dialog(self, e):
+        link_field = ft.TextField(hint_text="Paste Google Drive folder link", autofocus=True)
+
+        def open_folder(e):
+            link = link_field.value.strip()
+            folder_id = self.extract_id_from_link(link)
+            if folder_id:
+                self.show_folder_contents(folder_id, "Shared Folder")
+            else:
+                self.page.snack_bar = ft.SnackBar(ft.Text("Invalid Drive link"))
+                self.page.snack_bar.open = True
+            dialog.open = False
+            self.page.update()
+
+        dialog = ft.AlertDialog(
+            title=ft.Text("Open Shared Folder"),
+            content=link_field,
+            actions=[
+                ft.TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)),
+                ft.ElevatedButton("Open", on_click=open_folder)
+            ]
+        )
+        self.page.dialog = dialog
+        dialog.open = True
+        self.page.update()
+
+
+    def handle_paste_link(self, e):
+        link = e.control.value.strip()
+        if not link:
+            return
+        folder_id = self.extract_id_from_link(link)
+        if not folder_id:
+            self.page.snack_bar = ft.SnackBar(ft.Text("Invalid link format"))
+            self.page.snack_bar.open = True
+            self.page.update()
+            return
+        # Open folder and allow saving to favorites
+        self.show_folder_contents(folder_id, "Shared Folder")
+        # clear input
+        self.paste_link_field.value = ""
+        self.page.update()
+
+    def open_save_favorite_dialog(self):
+        # ask subject name
+        subject_field = ft.TextField(label="Subject / Category (e.g. Math 11)", autofocus=True)
+
+        def save(e):
+            subject = subject_field.value.strip()
+            if not subject:
+                return
+            added = self.add_favorite(subject, self.current_folder_id, self.current_folder_name)
+            if added:
+                self.page.snack_bar = ft.SnackBar(ft.Text("Saved to favorites"))
+                self.page.snack_bar.open = True
+            else:
+                self.page.snack_bar = ft.SnackBar(ft.Text("Already in favorites"))
+                self.page.snack_bar.open = True
+            dialog.open = False
+            self.page.update()
+
+        dialog = ft.AlertDialog(title=ft.Text("Save folder to favorites"), content=subject_field, actions=[ft.TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)), ft.ElevatedButton("Save", on_click=save)])
+        self.page.dialog = dialog
+        dialog.open = True
+        self.page.update()
+
+    # -------------------------
+    # Dialog helpers
+    # -------------------------
+    def close_dialog(self, dialog):
+        dialog.open = False
+        self.page.update()
+
+    # -------------------------
+    # Build & return the main view
+    # -------------------------
+    def build_favorites_ui(self):
+        """Build a column showing saved subjects and their folders"""
+        col = ft.Column(spacing=6)
+        if not self.favorites:
+            col.controls.append(ft.Text("No saved links", color=ft.Colors.GREY_600))
+            return col
+
+        for subject, folders in self.favorites.items():
+            # subject header row
+            subject_row = ft.Row(
+                [
+                    ft.Text(subject, weight=ft.FontWeight.BOLD),
+                    ft.IconButton(icon=ft.Icons.DELETE, tooltip="Remove subject", on_click=lambda e, s=subject: self.remove_subject_confirm(s)),
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            )
+            col.controls.append(subject_row)
+
+            for f in folders:
+                # each saved folder: name, open, delete
+                folder_row = ft.Row(
+                    [
+                        ft.Text(f.get("name", f.get("id")), size=13, expand=True),
+                        ft.IconButton(icon=ft.Icons.OPEN_IN_NEW, on_click=lambda e, fid=f["id"], nm=f.get("name", ""): self.show_folder_contents(fid, nm)),
+                        ft.IconButton(icon=ft.Icons.DELETE, on_click=lambda e, s=subject, fid=f["id"]: self.confirm_remove_favorite(s, fid)),
+                    ]
+                )
+                col.controls.append(folder_row)
+
+        return col
+
+    def remove_subject_confirm(self, subject):
+        def remove(e):
+            if subject in self.favorites:
+                del self.favorites[subject]
+                self.save_favorites()
+            dialog.open = False
+            self.page.update()
+        dialog = ft.AlertDialog(title=ft.Text("Remove subject"), content=ft.Text(f"Remove all favorites under '{subject}'?"), actions=[ft.TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)), ft.ElevatedButton("Remove", on_click=remove, bgcolor=ft.Colors.RED)])
+        self.page.dialog = dialog
+        dialog.open = True
+        self.page.update()
+
+    def confirm_remove_favorite(self, subject, folder_id):
+        def remove(e):
+            self.remove_favorite(subject, folder_id)
+            dialog.open = False
+            self.page.update()
+        dialog = ft.AlertDialog(title=ft.Text("Remove favorite"), content=ft.Text("Remove this saved folder?"), actions=[ft.TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)), ft.ElevatedButton("Remove", on_click=remove, bgcolor=ft.Colors.RED)])
+        self.page.dialog = dialog
+        dialog.open = True
+        self.page.update()
+
     def handle_logout(self, e):
-        """Handle logout"""
         self.auth.logout()
         self.on_logout()
-    
+
     def get_view(self):
-        """Return the main view with sidebar"""
-        # Sidebar
+    # ---- LEFT SIDEBAR ----
         sidebar = ft.Container(
-            content=ft.Column([
-                ft.Container(
-                    content=ft.TextButton(
+            width=260,
+            bgcolor=ft.Colors.GREY_100,
+            padding=20,
+            content=ft.Column(
+                controls=[
+                    ft.ElevatedButton(
                         "+ NEW",
                         on_click=self.show_new_menu,
                         style=ft.ButtonStyle(
-                            color=ft.Colors.BLACK,
+                            padding=20,
                             bgcolor=ft.Colors.WHITE,
-                            shape=ft.RoundedRectangleBorder(radius=8),
-                        )
+                            color=ft.Colors.BLACK,
+                            shape=ft.RoundedRectangleBorder(radius=10),
+                        ),
+                        expand=False,
                     ),
-                    padding=10
-                ),
-                ft.Container(
-                    content=ft.TextButton(
+                    ft.ElevatedButton(
+                        "Paste a Link",
+                        on_click=self.paste_link_dialog,
+                        style=ft.ButtonStyle(
+                            padding=20,
+                            bgcolor=ft.Colors.GREY_200,
+                            color=ft.Colors.BLACK,
+                            shape=ft.RoundedRectangleBorder(radius=10),
+                        ),
+                        expand=False,
+                    ),
+                    ft.Container(height=20),
+                    ft.ElevatedButton(
                         "SETTINGS",
-                        on_click=lambda e: print("Settings clicked"),
+                        on_click=lambda e: None,
                         style=ft.ButtonStyle(
-                            color=ft.Colors.BLACK,
+                            padding=20,
                             bgcolor=ft.Colors.WHITE,
-                            shape=ft.RoundedRectangleBorder(radius=8),
-                        )
+                            color=ft.Colors.BLACK,
+                            shape=ft.RoundedRectangleBorder(radius=10),
+                        ),
                     ),
-                    padding=10
-                ),
-                ft.Container(
-                    content=ft.TextButton(
+                    ft.ElevatedButton(
                         "TO-DO",
-                        on_click=lambda e: print("To-Do clicked"),
+                        on_click=lambda e: None,
                         style=ft.ButtonStyle(
-                            color=ft.Colors.BLACK,
+                            padding=20,
                             bgcolor=ft.Colors.WHITE,
-                            shape=ft.RoundedRectangleBorder(radius=8),
-                        )
+                            color=ft.Colors.BLACK,
+                            shape=ft.RoundedRectangleBorder(radius=10),
+                        ),
                     ),
-                    padding=10
-                ),
-                ft.Container(
-                    content=ft.TextButton(
+                    ft.ElevatedButton(
                         "ACCOUNT",
                         on_click=self.handle_logout,
                         style=ft.ButtonStyle(
-                            color=ft.Colors.BLACK,
+                            padding=20,
                             bgcolor=ft.Colors.WHITE,
-                            shape=ft.RoundedRectangleBorder(radius=8),
+                            color=ft.Colors.BLACK,
+                            shape=ft.RoundedRectangleBorder(radius=10),
+                        ),
+                    ),
+                ],
+                spacing=15,
+            ),
+        )
+
+        # ---- TOP BAR ----
+        top_bar = ft.Container(
+            bgcolor=ft.Colors.WHITE,
+            padding=20,
+            content=ft.Row(
+                [
+                    self.search_field,
+                    ft.IconButton(
+                        icon=ft.Icons.ACCOUNT_CIRCLE,
+                        icon_size=36,
+                        tooltip=self.user_email,
+                    ),
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            ),
+        )
+
+        # ---- TABS ----
+        tabs = ft.Container(
+            padding=ft.padding.symmetric(horizontal=20, vertical=10),
+            content=ft.Row(
+                [
+                    ft.TextButton(
+                        "YOUR FOLDERS",
+                        on_click=lambda e: self.load_your_folders(),
+                        style=ft.ButtonStyle(
+                            bgcolor=ft.Colors.WHITE,
+                            color=ft.Colors.BLACK,
+                            shape=ft.RoundedRectangleBorder(radius=12),
+                            padding=15
                         )
                     ),
-                    padding=10
-                ),
-            ]),
-            width=200,
-            bgcolor=ft.Colors.GREY_100,
-            padding=20
-        )
-        
-        # Main content area
-        main_content = ft.Container(
-            content=ft.Column([
-                # Top bar with search and account
-                ft.Container(
-                    content=ft.Row([
-                        self.search_field,
-                        ft.IconButton(
-                            icon=ft.Icons.ACCOUNT_CIRCLE,
-                            icon_size=32,
-                            tooltip=self.user_email
+                    ft.TextButton(
+                        "Pasted Links",
+                        on_click=lambda e: print("Pasted Links clicked"),
+                        style=ft.ButtonStyle(
+                            bgcolor=ft.Colors.WHITE,
+                            color=ft.Colors.BLACK,
+                            shape=ft.RoundedRectangleBorder(radius=12),
+                            padding=15
                         )
-                    ]),
-                    padding=20,
-                    bgcolor=ft.Colors.WHITE
-                ),
-                # Folder section header with tabs
-                ft.Container(
-                    content=ft.Row([
-                        ft.TextButton(
-                            "YOUR FOLDERS",
-                            on_click=lambda e: self.load_your_folders(),
-                            style=ft.ButtonStyle(
-                                color=ft.Colors.BLACK if self.current_view == "your_folders" else ft.Colors.GREY_600,
-                            )
-                        ),
-                        ft.TextButton(
-                            "SHARED DRIVES",
-                            on_click=lambda e: self.load_shared_drives(),
-                            style=ft.ButtonStyle(
-                                color=ft.Colors.BLACK if self.current_view == "shared_drives" else ft.Colors.GREY_600,
-                            )
-                        ),
-                    ]),
-                    padding=ft.padding.symmetric(horizontal=20, vertical=10),
-                    border=ft.border.only(bottom=ft.BorderSide(2, ft.Colors.GREY_300))
-                ),
-                # Folder list
-                ft.Container(
-                    content=self.folder_list,
-                    expand=True,
-                    bgcolor=ft.Colors.GREY_50,
-                    padding=0
-                )
-            ], spacing=0, expand=True),
-            expand=True,
-            bgcolor=ft.Colors.WHITE
+                    ),
+                    ft.TextButton(
+                        "Your Drive",
+                        on_click=lambda e: self.load_your_folders(),
+                        style=ft.ButtonStyle(
+                            bgcolor=ft.Colors.WHITE,
+                            color=ft.Colors.BLACK,
+                            shape=ft.RoundedRectangleBorder(radius=12),
+                            padding=15
+                        )
+                    ),
+                ],
+                spacing=10,
+            ),
         )
-        
-        print(f"Building view - Folder list has {len(self.folder_list.controls)} controls")  # Debug
-        
-        # Main layout
-        return ft.Row([
-            sidebar,
-            ft.VerticalDivider(width=1, color=ft.Colors.GREY_300),
-            main_content
-        ], expand=True, spacing=0)
+
+        # ---- MAIN CONTENT ----
+        main_content = ft.Column(
+            controls=[
+                top_bar,
+                tabs,
+                ft.Container(
+                    bgcolor=ft.Colors.WHITE,
+                    padding=0,
+                    expand=True,
+                    content=self.folder_list,
+                ),
+            ],
+            expand=True,
+            spacing=0,
+        )
+
+        # ---- FULL PAGE LAYOUT ----
+        return ft.Row(
+            [
+                sidebar,
+                ft.VerticalDivider(width=1, color=ft.Colors.GREY_300),
+                main_content,
+            ],
+            expand=True,
+        )
