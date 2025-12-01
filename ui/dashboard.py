@@ -12,16 +12,16 @@ class Dashboard(ft.Control):
         self.drive = DriveService(auth_service.get_service())
         
         self.current_folder_id = 'root'
-        self.folder_stack = []  # For navigation history
+        self.folder_stack = []
         self.selected_files = set()
         
         # UI Components
         self.file_list = ft.ListView(expand=True, spacing=2)
         self.current_path = ft.Text("My Drive", size=18, weight=ft.FontWeight.BOLD)
-        self.status_bar = ft.Text("Ready", size=12, color=ft.colors.GREY_700)
+        self.status_bar = ft.Text("Ready", size=12, color=ft.Colors.GREY_700)
         self.search_field = ft.TextField(
             hint_text="Search files...",
-            prefix_icon=ft.icons.SEARCH,
+            prefix_icon=ft.Icons.SEARCH,
             on_submit=self.handle_search,
             width=300
         )
@@ -50,7 +50,7 @@ class Dashboard(ft.Control):
         # Add back button if not in root
         if self.current_folder_id != 'root':
             back_button = ft.ListTile(
-                leading=ft.Icon(ft.icons.ARROW_BACK, color=ft.colors.BLUE),
+                leading=ft.Icon(ft.Icons.ARROW_BACK, color=ft.Colors.BLUE),
                 title=ft.Text(".. (Back)", weight=ft.FontWeight.BOLD),
                 on_click=self.go_back
             )
@@ -66,7 +66,7 @@ class Dashboard(ft.Control):
                     content=ft.Text(
                         "No files found in My Drive",
                         size=16,
-                        color=ft.colors.GREY_500
+                        color=ft.Colors.GREY_500
                     ),
                     padding=20,
                     alignment=ft.alignment.center
@@ -79,8 +79,8 @@ class Dashboard(ft.Control):
     def create_file_tile(self, file):
         """Create a list tile for a file/folder"""
         is_folder = file.get('mimeType') == 'application/vnd.google-apps.folder'
-        icon = ft.icons.FOLDER if is_folder else ft.icons.INSERT_DRIVE_FILE
-        icon_color = ft.colors.AMBER if is_folder else ft.colors.BLUE_GREY
+        icon = ft.Icons.FOLDER if is_folder else ft.Icons.INSERT_DRIVE_FILE
+        icon_color = ft.Colors.AMBER if is_folder else ft.Colors.BLUE_GREY
         
         # Format size
         size_str = ""
@@ -104,21 +104,21 @@ class Dashboard(ft.Control):
             title=ft.Text(file['name']),
             subtitle=ft.Text(size_str if size_str else "Folder"),
             trailing=ft.PopupMenuButton(
-                icon=ft.icons.MORE_VERT,
+                icon=ft.Icons.MORE_VERT,
                 items=[
                     ft.PopupMenuItem(
                         text="Rename",
-                        icon=ft.icons.EDIT,
+                        icon=ft.Icons.EDIT,
                         on_click=lambda e, f=file: self.rename_file_dialog(f)
                     ),
                     ft.PopupMenuItem(
                         text="Delete",
-                        icon=ft.icons.DELETE,
+                        icon=ft.Icons.DELETE,
                         on_click=lambda e, f=file: self.delete_file_dialog(f)
                     ),
                     ft.PopupMenuItem(
                         text="Info",
-                        icon=ft.icons.INFO,
+                        icon=ft.Icons.INFO,
                         on_click=lambda e, f=file: self.show_file_info(f)
                     ),
                 ]
@@ -151,6 +151,38 @@ class Dashboard(ft.Control):
         
         self.status_bar.value = f"Found {len(files)} results"
         self.update()
+    
+    def create_folder_dialog(self, e):
+        """Show create folder dialog"""
+        name_field = ft.TextField(
+            hint_text="Enter folder name",
+            autofocus=True
+        )
+        
+        def create(e):
+            folder_name = name_field.value.strip()
+            if folder_name:
+                result = self.drive.create_folder(folder_name, self.current_folder_id)
+                if result:
+                    self.status_bar.value = f"Created folder '{folder_name}'"
+                    self.load_files()
+                else:
+                    self.status_bar.value = "Failed to create folder"
+                    self.update()
+            dialog.open = False
+            self.page.update()
+        
+        dialog = ft.AlertDialog(
+            title=ft.Text("Create New Folder"),
+            content=name_field,
+            actions=[
+                ft.TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)),
+                ft.ElevatedButton("Create", on_click=create)
+            ]
+        )
+        self.page.dialog = dialog
+        dialog.open = True
+        self.page.update()
     
     def rename_file_dialog(self, file):
         """Show rename dialog"""
@@ -199,7 +231,7 @@ class Dashboard(ft.Control):
             content=ft.Text(f"Are you sure you want to delete '{file['name']}'?"),
             actions=[
                 ft.TextButton("Cancel", on_click=lambda e: self.close_dialog(dialog)),
-                ft.ElevatedButton("Delete", on_click=delete, bgcolor=ft.colors.RED)
+                ft.ElevatedButton("Delete", on_click=delete, bgcolor=ft.Colors.RED)
             ]
         )
         self.page.dialog = dialog
@@ -243,35 +275,42 @@ class Dashboard(ft.Control):
             # Top bar
             ft.Container(
                 content=ft.Row([
-                    ft.Icon(ft.icons.CLOUD, size=30, color=ft.colors.BLUE),
+                    ft.Icon(ft.Icons.CLOUD, size=30, color=ft.Colors.BLUE),
                     ft.Text("Drive Manager", size=20, weight=ft.FontWeight.BOLD),
                     ft.Container(expand=True),
                     self.search_field,
                     ft.IconButton(
-                        icon=ft.icons.REFRESH,
+                        icon=ft.Icons.CREATE_NEW_FOLDER,
+                        tooltip="Create Folder",
+                        on_click=self.create_folder_dialog,
+                        bgcolor=ft.Colors.BLUE,
+                        icon_color=ft.Colors.WHITE
+                    ),
+                    ft.IconButton(
+                        icon=ft.Icons.REFRESH,
                         tooltip="Refresh",
                         on_click=lambda e: self.load_files()
                     ),
                     ft.PopupMenuButton(
-                        icon=ft.icons.ACCOUNT_CIRCLE,
+                        icon=ft.Icons.ACCOUNT_CIRCLE,
                         tooltip=self.user_email,
                         items=[
                             ft.PopupMenuItem(
                                 text="Logout",
-                                icon=ft.icons.LOGOUT,
+                                icon=ft.Icons.LOGOUT,
                                 on_click=self.handle_logout
                             )
                         ]
                     )
                 ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                 padding=15,
-                bgcolor=ft.colors.SURFACE_VARIANT
+                bgcolor=ft.Colors.ON_SURFACE_VARIANT
             ),
             # Path bar
             ft.Container(
                 content=self.current_path,
                 padding=10,
-                bgcolor=ft.colors.SURFACE_VARIANT
+                bgcolor=ft.Colors.ON_SURFACE_VARIANT
             ),
             # File list
             ft.Container(
@@ -283,6 +322,6 @@ class Dashboard(ft.Control):
             ft.Container(
                 content=self.status_bar,
                 padding=10,
-                bgcolor=ft.colors.SURFACE_VARIANT
+                bgcolor=ft.Colors.ON_SURFACE_VARIANT
             )
         ], expand=True, spacing=0)
