@@ -6,7 +6,7 @@ from services.auth_service import GoogleAuth
 def main(page: ft.Page):
     page.window_always_on_top = True
 
-    page.title = "Google Drive Folder Manager"
+    page.title = "MINI LMS"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 0
     page.window_width = 1200

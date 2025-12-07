@@ -218,5 +218,6 @@ __marimo__/
 services/credentials.json
 services/token.pickle
 test/
+docs/
 
 saved_links.json

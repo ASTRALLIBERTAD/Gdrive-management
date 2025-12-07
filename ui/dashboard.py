@@ -3,6 +3,7 @@ from services.drive_service import DriveService
 import json
 import os
 from ui.custom_control.custom_controls import ButtonWithMenu
+from ui.todo_view import TodoView
 
 FAVORITES_FILE = "favorites.json"
 SAVED_LINKS_FILE = "saved_links.json"
@@ -797,6 +798,18 @@ class Dashboard:
         dialog.open = True
         self.page.update()
 
+    def show_todo_view(self, e):
+        
+        self.current_view = "todo"
+        self.folder_list.controls.clear()
+        
+        
+        todo_view = TodoView(self.page, on_back=self.load_your_folders, drive_service=self.drive)
+        
+        
+        self.folder_list.controls.append(todo_view.get_view())
+        self.page.update()
+
     def handle_logout(self, e):
         self.auth.logout()
         self.on_logout()
@@ -821,7 +834,7 @@ class Dashboard:
                     page=self.page
                 ),
                 ft.ElevatedButton("SETTINGS", on_click=lambda e: None),
-                ft.ElevatedButton("TO-DO", on_click=lambda e: DriveService.open_shared_link(self)),
+                ft.ElevatedButton("TO-DO", on_click=self.show_todo_view),
                 ft.ElevatedButton("ACCOUNT", on_click=self.handle_logout),
             ], spacing=15)
         )
