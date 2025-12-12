@@ -80,13 +80,37 @@ pip install flet google-auth google-auth-oauthlib google-api-python-client
 
 ### 4. Set Up Google Cloud Credentials
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project 
-3. Enable the **Google Drive API**
-4. Go to **Credentials** → **Create Credentials** → **OAuth 2.0 Client IDs**
-5. Select **Desktop App** as the application type
-6. Download the credentials and save as `services/credentials.json`
+1. Go to [Google Cloud Console](https://console.cloud.google.com/).
+2. Create a new project.
+3. In the left sidebar, go to **APIs & Services** → **Library**.
+4. Search for **Google Drive API**.
+5. Click on **Google Drive API** → **Enable**.
+6. Go to **APIs & Services** → **Credentials**.
+7. Click **Create Credentials** → **OAuth 2.0 Client ID**.
+8. If prompted, configure the OAuth consent screen:
 
+   - Select External for testing or Internal if only for your organization.
+   - Fill in App Name, User Support Email, and Developer Email.
+   - Save and continue (you can skip scopes for now for basic setup).
+
+9. Back to Create OAuth 2.0 Client ID:
+
+   - Select Desktop App as the application type.
+   - Give it a name (e.g., MLS-alternative).
+   - Click Create.
+
+10. After creating, click Download JSON.
+11. Save it in your project folder, e.g., services/credentials.json.
+12. In the left sidebar:
+      - APIs & Services → OAuth consent screen
+
+13. Scroll down to the section Test users.
+
+14. Click Add users.
+
+15. Enter the Gmail accounts that will be allowed to use your OAuth app in testing mode:
+      - You can add your own Gmail.
+      - You can add multiple test accounts if needed.
 ## 🎮 Usage
 
 Run the application:
@@ -199,10 +223,37 @@ pip install flet google-auth google-auth-oauthlib google-api-python-client
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/).
 2. Create a new project.
-3. Enable the **Google Drive API**.
-4. Navigate to **Credentials** → **Create Credentials** → **OAuth 2.0 Client IDs**.
-5. Select **Desktop App** as the application type.
-6. Download the credentials and save the file as `services/credentials.json`.
+3. In the left sidebar, go to **APIs & Services** → **Library**.
+4. Search for **Google Drive API**.
+5. Click on **Google Drive API** → **Enable**.
+6. Go to **APIs & Services** → **Credentials**.
+7. Click **Create Credentials** → **OAuth 2.0 Client ID**.
+8. If prompted, configure the OAuth consent screen:
+
+   - Select External for testing or Internal if only for your organization.
+   - Fill in App Name, User Support Email, and Developer Email.
+   - Save and continue (you can skip scopes for now for basic setup).
+
+9. Back to Create OAuth 2.0 Client ID:
+
+   - Select Desktop App as the application type.
+   - Give it a name (e.g., MLS-alternative).
+   - Click Create.
+
+10. After creating, click Download JSON.
+11. Save it in your project folder, e.g., services/credentials.json.
+12. In the left sidebar:
+      - APIs & Services → OAuth consent screen
+
+13. Scroll down to the section Test users.
+
+14. Click Add users.
+
+15. Enter the Gmail accounts that will be allowed to use your OAuth app in testing mode:
+      - You can add your own Gmail.
+      - You can add multiple test accounts if needed.
+
+16. Click Save.
 
 
 ### 4. Create a feature branch
