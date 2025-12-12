@@ -3,6 +3,7 @@ from ui.dashboard import Dashboard
 from ui.login import LoginView
 from services.auth_service import GoogleAuth
 
+
 def main(page: ft.Page):
     page.window_always_on_top = True
 

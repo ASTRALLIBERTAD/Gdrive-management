@@ -38,6 +38,8 @@ class Dashboard:
             expand=True,
         )
 
+        self.menu_open = False
+
         self.paste_link_field = ft.TextField(
             hint_text="Paste Google Drive folder or file link and press Enter",
             on_submit=self.paste_links_manager.handle_paste_link,
@@ -48,11 +50,27 @@ class Dashboard:
 
         self.folder_list = ft.Column(spacing=0, scroll=ft.ScrollMode.ALWAYS, expand=True)
 
+        self.page.on_resize = self.on_resize
+
         self.page.title = "Drive Manager"
         self.page.vertical_alignment = ft.MainAxisAlignment.START
         self.page.horizontal_alignment = ft.CrossAxisAlignment.STRETCH
 
         self.folder_navigator.load_your_folders()
+
+    def toggle_menu(self, e):
+        self.menu_open = not self.menu_open
+        self.sidebar_container.visible = self.menu_open or self.page.width > 700
+        self.page.update()
+
+    def on_resize(self, e):
+        if self.page.width >= 900:
+            self.sidebar_container.visible = True
+            self.menu_open = False
+        else:
+            self.sidebar_container.visible = self.menu_open
+        self.page.update()
+
 
     def show_folder_contents(self, folder_id, folder_name=None, is_shared_drive=False, push_to_stack=True):
         self.folder_navigator.show_folder_contents(folder_id, folder_name, is_shared_drive, push_to_stack)
@@ -67,9 +85,7 @@ class Dashboard:
     def show_todo_view(self, e):
         self.current_view = "todo"
         self.folder_list.controls.clear()
-        
         todo_view = TodoView(self.page, on_back=self.folder_navigator.load_your_folders, drive_service=self.drive)
-        
         self.folder_list.controls.append(todo_view.get_view())
         self.page.update()
 
@@ -85,10 +101,11 @@ class Dashboard:
         self.page.update()
 
     def get_view(self):
-        sidebar = ft.Container(
-            width=260,
+        self.sidebar_container = ft.Container(
+            width=170,
             bgcolor=ft.Colors.GREY_100,
             padding=20,
+            visible=(self.page.width >= 900) or self.menu_open,
             content=ft.Column([
                 ButtonWithMenu(
                     text="+ NEW",
@@ -105,6 +122,11 @@ class Dashboard:
         top_bar = ft.Container(
             padding=20,
             content=ft.Row([
+                ft.IconButton(
+                    icon=ft.Icons.MENU,
+                    on_click=self.toggle_menu,
+                    visible=True
+                ),
                 self.search_field,
                 ft.IconButton(
                     icon=ft.Icons.ACCOUNT_CIRCLE,
@@ -119,19 +141,17 @@ class Dashboard:
             content=ft.Row([
                 ft.ElevatedButton(
                     "YOUR FOLDERS",
-                    on_click=lambda e: (print("DEBUG: YOUR FOLDERS clicked"), self.folder_navigator.reset_to_root()),
+                    on_click=lambda e: (self.folder_navigator.reset_to_root()),
                 ),
                 ft.ElevatedButton(
                     "PASTE LINKS",
-                    on_click=lambda e: (print("DEBUG: PASTE LINKS tab clicked"), self.paste_links_manager.load_paste_links_view()),
+                    on_click=lambda e: (self.paste_links_manager.load_paste_links_view()),
                 ),
                 ft.ElevatedButton(
                     "SHARED DRIVES",
-                    on_click=lambda e: (print("DEBUG: SHARED DRIVES clicked"), self.folder_navigator.load_shared_drives()),
+                    on_click=lambda e: (self.folder_navigator.load_shared_drives()),
                 ),
-            ], 
-            spacing=10,
-            alignment=ft.MainAxisAlignment.CENTER)
+            ], spacing=10, alignment=ft.MainAxisAlignment.CENTER)
         )
 
         main_content = ft.Column([
@@ -141,7 +161,7 @@ class Dashboard:
         ], expand=True)
 
         return ft.Row([
-            sidebar,
+            self.sidebar_container,
             ft.VerticalDivider(width=1),
             main_content,
         ], expand=True)

@@ -215,8 +215,8 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-services/credentials.json
-services/token.pickle
+credentials.json
+token.pickle
 test/
 local_only/
 lms_data/
