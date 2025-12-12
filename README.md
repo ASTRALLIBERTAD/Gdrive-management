@@ -141,20 +141,22 @@ flet main.py
 
 ```
 capstone/
-├── main.py                 # Application entry point
-├── README.md               # Project Overview
-├── saved_links.json        # Saved Drive links (auto-generated)
-├── favorites.json          # Saved favorites (auto-generated)
+capstone/
+├── main.py                   # Application entry point
+├── README.md                 # Project Overview
+├── saved_links.json          # Saved Drive links (auto-generated)
+├── favorites.json            # Saved favorites (auto-generated)
 ├── services/
-│   ├── auth_service.py     # Google OAuth authentication
-│   ├── drive_service.py    # Google Drive API operations
-│   ├── credentials.json    # OAuth credentials (you provide)
-│   └── token.pickle        # Auth token (auto-generated)
+│   ├── auth_service.py       # Google OAuth authentication logic
+│   ├── drive_service.py      # Google Drive API operations
+│   ├── credentials.json      # OAuth credentials (you provide)
+│   └── token.pickle          # Auth token (auto-generated)
 ├── ui/
-│   ├── dashboard.py        # Main dashboard UI
-│   ├── login.py            # Login screen
-│   └── custom_control/     # Custom UI components
-└── venv/                   # Virtual environment
+│   ├── dashboard.py          # Main dashboard UI
+│   ├── login.py              # Login screen
+│   └── custom_control/       # Custom UI components directory
+├── .gitignore                # Specifies intentionally untracked files to ignore
+└── venv/                     # Virtual environment directory
 ```
 
 ## 🔧 Configuration
