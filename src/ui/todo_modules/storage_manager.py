@@ -7,9 +7,104 @@ class StorageManager:
     def __init__(self, todo_view, drive_service):
         self.todo = todo_view
         self.drive_service = drive_service
+        self.subject_folders_cache = {}
+    
+    def get_or_create_subject_folder_in_lms(self, subject):
+        if not self.drive_service or not self.todo.data_manager.lms_root_id:
+            return None
+        
+        cache_key = f"lms_{subject}"
+        if cache_key in self.subject_folders_cache:
+            folder_id = self.subject_folders_cache[cache_key]
+            try:
+                info = self.drive_service.get_file_info(folder_id)
+                if info:
+                    return folder_id
+            except:
+                pass
+        
+        lms_root = self.todo.data_manager.lms_root_id
+        
+        try:
+            result = self.drive_service.list_files(folder_id=lms_root, use_cache=False)
+            files = result.get('files', []) if result else []
+            
+            for f in files:
+                if f.get('name') == subject and f.get('mimeType') == 'application/vnd.google-apps.folder':
+                    self.subject_folders_cache[cache_key] = f['id']
+                    return f['id']
+            
+            new_folder = self.drive_service.create_folder(subject, parent_id=lms_root)
+            if new_folder:
+                self.subject_folders_cache[cache_key] = new_folder['id']
+                return new_folder['id']
+        except Exception as e:
+            print(f"Error creating subject folder in LMS: {e}")
+        
+        return None
+    
+    def upload_assignment_attachment(self, file_path, file_name, subject, assignment_id):
+        if not self.drive_service or not self.todo.data_manager.lms_root_id:
+            return None
+        
+        subject_folder_id = self.get_or_create_subject_folder_in_lms(subject)
+        if not subject_folder_id:
+            return None
+        
+        try:
+            attachments_folder_id = self._get_or_create_attachments_folder_in_lms(subject_folder_id)
+            if not attachments_folder_id:
+                return None
+            
+            prefixed_name = f"ATTACH_{assignment_id}_{file_name}"
+            
+            result = self.drive_service.upload_file(
+                file_path,
+                parent_id=attachments_folder_id,
+                file_name=prefixed_name
+            )
+            
+            return result
+        except Exception as e:
+            print(f"Error uploading attachment: {e}")
+            return None
+    
+    def _get_or_create_attachments_folder_in_lms(self, subject_folder_id):
+        try:
+            result = self.drive_service.list_files(folder_id=subject_folder_id, use_cache=False)
+            files = result.get('files', []) if result else []
+            
+            for f in files:
+                if f.get('name') == 'Attachments' and f.get('mimeType') == 'application/vnd.google-apps.folder':
+                    return f['id']
+            
+            new_folder = self.drive_service.create_folder('Attachments', parent_id=subject_folder_id)
+            if new_folder:
+                return new_folder['id']
+        except Exception as e:
+            print(f"Error creating attachments folder: {e}")
+        
+        return None
+    
+    def upload_submission_to_link_drive(self, file_path, file_name, subject, student_name, link_drive_id):
+        if not self.drive_service or not link_drive_id:
+            return None
+        
+        try:
+            prefixed_name = f"{student_name}_{file_name}"
+            
+            result = self.drive_service.upload_file(
+                file_path,
+                parent_id=link_drive_id,
+                file_name=prefixed_name
+            )
+            
+            return result
+        except Exception as e:
+            print(f"Error uploading submission: {e}")
+            return None
     
     def show_storage_settings(self):
-        
         if not self.drive_service:
             self.todo.show_snackbar("Drive service not available", ft.Colors.RED)
             return
@@ -184,7 +279,6 @@ class StorageManager:
         self.todo.data_manager.lms_root_id = folder_id
     
     def create_browse_dialog(self, initial_parent_id, on_select):
-        
         current_folder = {'id': initial_parent_id, 'name': 'Root'}
         if initial_parent_id == 'root':
             current_folder['name'] = 'My Drive'
@@ -210,7 +304,6 @@ class StorageManager:
                 files = results.get('files', []) if results else []
                 folders = [f for f in files if f['mimeType'] == 'application/vnd.google-apps.folder']
                 
-                
                 if (folder_id == 'root' or folder_id == initial_parent_id) and self.todo.saved_links:
                     file_list.controls.append(ft.Container(
                         content=ft.Text("⭐ Saved Folders", weight=ft.FontWeight.BOLD),
@@ -229,7 +322,6 @@ class StorageManager:
                             )
                     file_list.controls.append(ft.Divider())
                 
-                
                 if folder_id != 'root' and folder_id != initial_parent_id:
                     file_list.controls.append(
                         ft.ListTile(
@@ -238,7 +330,6 @@ class StorageManager:
                             on_click=lambda e: load_parent(folder_id)
                         )
                     )
-                
                 
                 for f in folders:
                     file_list.controls.append(
@@ -291,12 +382,10 @@ class StorageManager:
         overlay, close_func = self.todo.show_overlay(content, "Select Folder", width=400, height=500)
     
     def open_new_assignment_folder_picker(self, e):
-        
         start_id = self.todo.selected_drive_folder_id or self.todo.data_manager.lms_root_id or 'root'
         self.create_browse_dialog(start_id, self.update_new_assignment_folder)
     
     def update_new_assignment_folder(self, fid):
-        
         self.todo.selected_drive_folder_id = fid
         name = self.todo.get_folder_name_by_id(fid)
         

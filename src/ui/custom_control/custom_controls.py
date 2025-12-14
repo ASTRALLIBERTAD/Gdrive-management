@@ -4,7 +4,7 @@ class ButtonWithMenu(ft.PopupMenuButton):
     """Custom PopupMenuButton styled to look like an ElevatedButton"""
     
     def __init__(self, text, menu_items, on_menu_select=None, page=None, **kwargs):
-        self.page = page  # <-- IMPORTANT FIX
+        self.page = page  
 
         popup_items = [
             ft.PopupMenuItem(text=item, on_click=self._handle_menu_click)

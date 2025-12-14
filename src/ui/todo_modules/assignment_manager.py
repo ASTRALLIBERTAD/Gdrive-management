@@ -4,7 +4,6 @@ import datetime
 
 class AssignmentManager:
     
-    
     def __init__(self, todo_view):
         self.todo = todo_view
         
@@ -26,6 +25,9 @@ class AssignmentManager:
             self.todo.show_snackbar("Please enter assignment title", ft.Colors.RED)
             return
         
+        if not subject:
+            self.todo.show_snackbar("Please select a subject", ft.Colors.RED)
+            return
         
         final_deadline = None
         if self.todo.selected_date_value and self.todo.selected_time_value:
@@ -57,13 +59,14 @@ class AssignmentManager:
         
         if self.todo.selected_attachment["path"] and self.todo.drive_service and self.todo.data_manager.lms_root_id:
             try:
-                self.todo.show_snackbar("Uploading attachment to LMS storage...", ft.Colors.BLUE)
+                self.todo.show_snackbar("Uploading attachment to subject folder...", ft.Colors.BLUE)
                 self.todo.page.update()
                 
-                result = self.todo.drive_service.upload_file(
+                result = self.todo.storage_manager.upload_assignment_attachment(
                     self.todo.selected_attachment["path"],
-                    parent_id=self.todo.data_manager.lms_root_id,
-                    file_name=f"ATTACHMENT_{self.todo.selected_attachment['name']}"
+                    self.todo.selected_attachment["name"],
+                    subject,
+                    new_assignment['id']
                 )
                 
                 if result:
@@ -80,10 +83,8 @@ class AssignmentManager:
         self.todo.assignments.append(new_assignment)
         self.todo.data_manager.save_assignments(self.todo.assignments)
         
-        
         if self.todo.notification_service and self.todo.students:
             self.todo.notification_service.notify_new_assignment(new_assignment, self.todo.students)
-        
         
         self._reset_form()
         
@@ -91,7 +92,6 @@ class AssignmentManager:
         self.todo.show_snackbar("Assignment added! Students notified.", ft.Colors.GREEN)
     
     def _reset_form(self):
-        
         self.todo.assignment_title.value = ""
         self.todo.assignment_description.value = ""
         self.todo.subject_dropdown.value = None
@@ -106,7 +106,6 @@ class AssignmentManager:
         self.todo.drive_folder_label.value = "No folder selected"
     
     def display_teacher_view(self):
-        
         filtered = self.todo.assignments
         if self.todo.filter_dropdown.value != "All":
             filtered = [a for a in self.todo.assignments 
@@ -126,7 +125,6 @@ class AssignmentManager:
                 self.todo.assignment_column.controls.append(card)
     
     def display_student_view(self):
-        
         if self.todo.notification_service and self.todo.current_student_email:
             unread_count = self.todo.notification_service.get_unread_count(self.todo.current_student_email)
             if unread_count > 0:
@@ -151,11 +149,9 @@ class AssignmentManager:
             )
             return
         
-        
         current_student = next((s for s in self.todo.students 
                                if s.get('email') == self.todo.current_student_email), None)
         is_bridging = current_student.get('is_bridging', False) if current_student else False
-        
         
         filtered = []
         for a in self.todo.assignments:
@@ -166,7 +162,6 @@ class AssignmentManager:
                 filtered.append(a)
             elif target == 'regular' and not is_bridging:
                 filtered.append(a)
-        
         
         if self.todo.filter_dropdown.value != "All":
             filtered = [a for a in filtered 
@@ -186,7 +181,6 @@ class AssignmentManager:
                 self.todo.assignment_column.controls.append(card)
     
     def create_teacher_assignment_card(self, assignment):
-        
         status = self.get_status(assignment.get('deadline'))
         time_remaining = self.get_time_remaining(assignment.get('deadline'))
         submission_count = self.get_submission_count(assignment['id'])
@@ -197,7 +191,6 @@ class AssignmentManager:
             "Completed": ft.Colors.BLUE,
             "Overdue": ft.Colors.RED
         }.get(status, ft.Colors.GREY)
-        
         
         drive_folder_id = assignment.get('drive_folder_id')
         drive_folder_name = self.todo.get_folder_name_by_id(drive_folder_id) if drive_folder_id else None
@@ -213,14 +206,12 @@ class AssignmentManager:
             ) if self.todo.drive_service else ft.Container()
         ]) if drive_folder_name else ft.Container()
         
-    
         attachment_row = ft.Container()
         if assignment.get('attachment'):
             attachment_controls = [
                 ft.Icon(ft.Icons.ATTACH_FILE, size=16, color=ft.Colors.GREY_700),
                 ft.Text(f"Attachment: {assignment['attachment']}", size=13, color=ft.Colors.GREY_700)
             ]
-            
             
             if assignment.get('attachment_file_id') and self.file_preview:
                 attachment_controls.append(
@@ -232,7 +223,6 @@ class AssignmentManager:
                                 fname=assignment['attachment']: self._preview_attachment(fid, fname)
                     )
                 )
-            
             
             if assignment.get('attachment_file_link'):
                 attachment_controls.append(
@@ -254,7 +244,6 @@ class AssignmentManager:
                 )
             
             attachment_row = ft.Row(attachment_controls)
-        
         
         target_for = assignment.get('target_for', 'all')
         target_labels = {'all': 'All Students', 'bridging': 'Bridging Only', 'regular': 'Regular Only'}
@@ -286,7 +275,7 @@ class AssignmentManager:
                 ]),
                 ft.Text(f"Max Score: {assignment.get('max_score', 'N/A')}", size=13),
                 drive_row,
-                attachment_row,  
+                attachment_row,
                 ft.Row([
                     ft.Icon(ft.Icons.PEOPLE, size=16),
                     ft.Text(f"Submissions: {submission_count}/{total_students}", size=13),
@@ -318,7 +307,6 @@ class AssignmentManager:
         )
     
     def create_student_assignment_card(self, assignment):
-        
         status = self.get_status(assignment.get('deadline'), assignment['id'])
         time_remaining = self.get_time_remaining(assignment.get('deadline'))
         submission = self.get_submission_status(assignment['id'], self.todo.current_student_email)
@@ -331,7 +319,6 @@ class AssignmentManager:
         
         drive_folder_id = assignment.get('drive_folder_id')
         drive_folder_name = self.todo.get_folder_name_by_id(drive_folder_id) if drive_folder_id else None
-        
         
         attachment_row = ft.Container()
         if assignment.get('attachment'):
@@ -353,7 +340,6 @@ class AssignmentManager:
                     )
                 )
             
-
             if assignment.get('attachment_file_link'):
                 attachment_controls.append(
                     ft.IconButton(
@@ -407,7 +393,7 @@ class AssignmentManager:
                     ft.Icon(ft.Icons.FOLDER_SHARED, size=16, color=ft.Colors.BLUE),
                     ft.Text(f"Submit to: {drive_folder_name}", size=13, color=ft.Colors.BLUE),
                 ]) if drive_folder_name else ft.Container(),
-                attachment_row,  
+                attachment_row,
                 ft.Row([
                     ft.Icon(ft.Icons.ASSIGNMENT, size=16),
                     ft.Text(
@@ -451,9 +437,7 @@ class AssignmentManager:
             border=ft.border.all(1, ft.Colors.BLUE_GREY_100)
         )
     
-    
     def get_time_remaining(self, deadline_str):
-        
         if not deadline_str:
             return "No deadline"
         try:
@@ -479,7 +463,6 @@ class AssignmentManager:
             return "Invalid deadline"
     
     def get_status(self, deadline_str, assignment_id=None):
-        
         if self.todo.current_mode == "student" and assignment_id and self.todo.current_student_email:
             submission = self.get_submission_status(assignment_id, self.todo.current_student_email)
             if submission:
@@ -496,18 +479,15 @@ class AssignmentManager:
             return "Active"
     
     def get_submission_status(self, assignment_id, student_email):
-        
         for sub in self.todo.submissions:
             if sub['assignment_id'] == assignment_id and sub['student_email'] == student_email:
                 return sub
         return None
     
     def get_submission_count(self, assignment_id):
-        
         return sum(1 for sub in self.todo.submissions if sub['assignment_id'] == assignment_id)
     
     def open_drive_folder(self, folder_id):
-        
         if self.todo.drive_service:
             import webbrowser
             url = f"https://drive.google.com/drive/folders/{folder_id}"
@@ -531,7 +511,6 @@ class AssignmentManager:
         webbrowser.open(f"https://drive.google.com/file/d/{file_id}/view")
     
     def edit_assignment_dialog(self, assignment):
-        
         title_field = ft.TextField(value=assignment['title'], label="Title", width=320)
         desc_field = ft.TextField(
             value=assignment.get('description', ''),
@@ -549,7 +528,6 @@ class AssignmentManager:
         
         folder_label = ft.Text(f"Folder: {initial_name}", size=12, italic=True)
         
-
         current_attachment = {'path': None, 'name': assignment.get('attachment'), 
                              'file_id': assignment.get('attachment_file_id')}
         attachment_display = ft.Text(
@@ -607,15 +585,16 @@ class AssignmentManager:
             assignment['drive_folder_id'] = current_fid[0]
             assignment['target_for'] = target_dropdown.value
             
-            if current_attachment['path'] and self.todo.drive_service and current_fid[0]:
+            if current_attachment['path'] and self.todo.drive_service and self.todo.data_manager.lms_root_id:
                 try:
                     self.todo.show_snackbar("Uploading new attachment...", ft.Colors.BLUE)
                     self.todo.page.update()
                     
-                    result = self.todo.drive_service.upload_file(
+                    result = self.todo.storage_manager.upload_assignment_attachment(
                         current_attachment['path'],
-                        parent_id=current_fid[0],
-                        file_name=f"ATTACHMENT_{current_attachment['name']}"
+                        current_attachment['name'],
+                        assignment['subject'],
+                        assignment['id']
                     )
                     
                     if result:
@@ -649,9 +628,7 @@ class AssignmentManager:
         overlay, close_overlay = self.todo.show_overlay(content, "Edit Assignment", width=400)
     
     def delete_assignment(self, assignment):
-        
         def confirm(e):
-            
             self.todo.assignments = [a for a in self.todo.assignments if a['id'] != assignment['id']]
             self.todo.submissions = [s for s in self.todo.submissions 
                                      if s['assignment_id'] != assignment['id']]
@@ -674,7 +651,6 @@ class AssignmentManager:
         overlay, close_overlay = self.todo.show_overlay(content, "Confirm Delete", width=350)
     
     def show_notifications_dialog(self):
-        
         if not self.todo.notification_service:
             return
         
