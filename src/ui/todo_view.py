@@ -69,8 +69,7 @@ class TodoView:
                 ft.dropdown.Option("Physical Education"),
                 ft.dropdown.Option("Other"),
             ],
-            width=200,
-            max_menu_height=300  
+            width=200
         )
         
         self.max_score_field = ft.TextField(
@@ -88,8 +87,7 @@ class TodoView:
                 ft.dropdown.Option("all", "All Students"),
                 ft.dropdown.Option("bridging", "Bridging Only"),
                 ft.dropdown.Option("regular", "Regular Only"),
-            ],
-            max_menu_height=200  
+            ]
         )
         
         
@@ -120,8 +118,7 @@ class TodoView:
             ],
             value="All",
             width=150,
-            on_change=lambda e: self.display_assignments(),
-            max_menu_height=250  
+            on_change=lambda e: self.display_assignments()
         )
         
 
@@ -137,8 +134,7 @@ class TodoView:
         self.student_dropdown = ft.Dropdown(
             hint_text="Select Student",
             width=250,
-            on_change=self.on_student_selected,
-            max_menu_height=300  
+            on_change=self.on_student_selected
         )
         self.student_manager.update_student_dropdown()
         

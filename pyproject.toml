@@ -11,7 +11,9 @@ dependencies = [
   "flet",
   "google-auth",
   "google-auth-oauthlib", 
-  "google-api-python-client"
+  "google-api-python-client",
+  "pypdf",
+  "python-pptx"
 ]
 
 [tool.flet]
@@ -22,3 +24,8 @@ copyright = "Copyright (C) 2025 by PLD Group 1"
 
 [tool.flet.app]
 path = "src"
+module = "main"
+
+[build-system]
+requires = ["flet"]
+build-backend = "flet"

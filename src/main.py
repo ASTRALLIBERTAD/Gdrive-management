@@ -36,4 +36,5 @@ def main(page: ft.Page):
     else:
         show_login()
 
-ft.app(target=main)
+if __name__ == "__main__":
+    ft.app(target=main)
