@@ -324,7 +324,14 @@ class TodoView:
                     )
                 ], spacing=10),
                 ft.Row([attach_btn, self.attachment_text], spacing=10),
-                ft.Row([pick_deadline_btn, self.selected_deadline_display], spacing=10),
+                ft.Row([
+                    pick_deadline_btn, 
+                    ft.Container(
+                        content=self.selected_deadline_display,
+                        padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                        border_radius=5,
+                    )
+                ], spacing=10),
                 ft.Container(height=10),
                 add_btn,
             ], spacing=10),

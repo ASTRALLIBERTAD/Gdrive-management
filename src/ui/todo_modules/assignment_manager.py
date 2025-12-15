@@ -21,13 +21,23 @@ class AssignmentManager:
         drive_folder_id = self.todo.selected_drive_folder_id
         target_for = self.todo.target_dropdown.value or "all"
         
+        errors = []
+        
         if not title:
-            self.todo.show_snackbar("Please enter assignment title", ft.Colors.RED)
-            return
+            errors.append("📝 Assignment title is required")
+            self.todo.assignment_title.error_text = "Required"
+            self.todo.assignment_title.border_color = ft.Colors.RED
+        else:
+            self.todo.assignment_title.error_text = None
+            self.todo.assignment_title.border_color = None
         
         if not subject:
-            self.todo.show_snackbar("Please select a subject", ft.Colors.RED)
-            return
+            errors.append("📚 Subject must be selected")
+            self.todo.subject_dropdown.error_text = "Required"
+            self.todo.subject_dropdown.border_color = ft.Colors.RED
+        else:
+            self.todo.subject_dropdown.error_text = None
+            self.todo.subject_dropdown.border_color = None
         
         final_deadline = None
         if self.todo.selected_date_value and self.todo.selected_time_value:
@@ -40,6 +50,39 @@ class AssignmentManager:
                 self.todo.selected_date_value,
                 datetime.time(23, 59)
             )
+        
+        if final_deadline:
+            now = datetime.datetime.now()
+            if final_deadline <= now:
+                time_diff = now - final_deadline
+                hours_ago = time_diff.total_seconds() / 3600
+                
+                if hours_ago < 1:
+                    minutes_ago = time_diff.total_seconds() / 60
+                    time_ago_str = f"{int(minutes_ago)} minutes ago"
+                elif hours_ago < 24:
+                    time_ago_str = f"{int(hours_ago)} hours ago"
+                else:
+                    days_ago = time_diff.days
+                    time_ago_str = f"{days_ago} days ago"
+                
+                errors.append(f"⏰ Deadline is in the past ({time_ago_str})")
+                
+                self.todo.selected_deadline_display.value = f"Invalid: {time_ago_str}"
+                self.todo.selected_deadline_display.color = ft.Colors.RED
+            else:
+
+                deadline_str = final_deadline.strftime('%B %d, %Y at %I:%M %p')
+                self.todo.selected_deadline_display.value = f"✓ Deadline: {deadline_str}"
+                self.todo.selected_deadline_display.color = ft.Colors.GREEN
+        else:
+            self.todo.selected_deadline_display.value = "No deadline selected"
+            self.todo.selected_deadline_display.color = None
+        
+        if errors:
+            self.show_validation_errors(errors)
+            self.todo.page.update()
+            return
         
         new_assignment = {
             'id': str(datetime.datetime.now().timestamp()),
@@ -90,6 +133,100 @@ class AssignmentManager:
         
         self.todo.display_assignments()
         self.todo.show_snackbar("Assignment added! Students notified.", ft.Colors.GREEN)
+    
+    def show_past_deadline_dialog(self, deadline, current_time):
+        
+        def close_dialog(e):
+            dialog.open = False
+            self.todo.page.update()
+        
+        deadline_str = deadline.strftime('%I:%M %p on %B %d, %Y')
+        current_str = current_time.strftime('%I:%M %p on %B %d, %Y')
+        
+        dialog = ft.AlertDialog(
+            title=ft.Row([
+                ft.Icon(ft.Icons.ERROR, color=ft.Colors.RED, size=30),
+                ft.Text("Deadline is in the Past", color=ft.Colors.RED)
+            ]),
+            content=ft.Column([
+                ft.Text("Cannot create assignment with a past deadline.", weight=ft.FontWeight.BOLD),
+                ft.Divider(),
+                ft.Container(
+                    content=ft.Column([
+                        ft.Row([
+                            ft.Icon(ft.Icons.SCHEDULE, size=20, color=ft.Colors.GREY_700),
+                            ft.Text("Selected deadline:", weight=ft.FontWeight.BOLD)
+                        ]),
+                        ft.Text(deadline_str, size=15, color=ft.Colors.RED),
+                        ft.Container(height=10),
+                        ft.Row([
+                            ft.Icon(ft.Icons.ACCESS_TIME, size=20, color=ft.Colors.GREY_700),
+                            ft.Text("Current time:", weight=ft.FontWeight.BOLD)
+                        ]),
+                        ft.Text(current_str, size=15, color=ft.Colors.GREEN),
+                    ]),
+                    padding=10,
+                    bgcolor=ft.Colors.with_opacity(0.1, ft.Colors.ORANGE),
+                    border_radius=5
+                ),
+                ft.Container(height=10),
+                ft.Text("Please select a future date and time.", italic=True, color=ft.Colors.GREY_700)
+            ], tight=True, spacing=10),
+            actions=[
+                ft.TextButton("OK", on_click=close_dialog)
+            ],
+        )
+        
+        self.todo.page.dialog = dialog
+        dialog.open = True
+        self.todo.page.update()
+    
+    def show_validation_errors(self, errors):
+        
+        def close_dialog(e):
+            dialog.open = False
+            self.todo.page.update()
+        
+        error_list = ft.Column([
+            ft.Row([
+                ft.Icon(ft.Icons.ERROR_OUTLINE, size=16, color=ft.Colors.RED),
+                ft.Text(error, size=14)
+            ], spacing=10)
+            for error in errors
+        ], spacing=8)
+        
+        dialog = ft.AlertDialog(
+            title=ft.Row([
+                ft.Icon(ft.Icons.WARNING, color=ft.Colors.ORANGE, size=30),
+                ft.Text("Cannot Create Assignment", color=ft.Colors.ORANGE)
+            ]),
+            content=ft.Column([
+                ft.Text("Please fix the following errors:", weight=ft.FontWeight.BOLD),
+                ft.Divider(),
+                ft.Container(
+                    content=error_list,
+                    padding=10,
+                    bgcolor=ft.Colors.with_opacity(0.1, ft.Colors.RED),
+                    border_radius=5
+                ),
+                ft.Container(height=10),
+                ft.Text("Fill in all required fields and try again.", 
+                       italic=True, color=ft.Colors.GREY_700, size=12)
+            ], tight=True, spacing=10),
+            actions=[
+                ft.TextButton("OK, I'll Fix It", on_click=close_dialog)
+            ],
+        )
+        
+        self.todo.page.dialog = dialog
+        dialog.open = True
+        self.todo.page.update()
+        
+        error_count = len(errors)
+        self.todo.show_snackbar(
+            f"{error_count} error{'s' if error_count > 1 else ''} - Please fix before creating assignment",
+            ft.Colors.RED
+        )
     
     def _reset_form(self):
         self.todo.assignment_title.value = ""
@@ -459,7 +596,8 @@ class AssignmentManager:
             else:
                 minutes = remaining.seconds // 60
                 return f"⏱️ {minutes}m remaining"
-        except:
+        except Exception as e:
+            print(f"Error parsing deadline: {e}")
             return "Invalid deadline"
     
     def get_status(self, deadline_str, assignment_id=None):
@@ -470,12 +608,16 @@ class AssignmentManager:
         
         if not deadline_str:
             return "Active"
+        
         try:
             deadline = datetime.datetime.fromisoformat(deadline_str)
-            if datetime.datetime.now() > deadline:
+            now = datetime.datetime.now()
+            
+            if now > deadline:
                 return "Overdue"
             return "Active"
-        except:
+        except Exception as e:
+            print(f"Error parsing deadline in get_status: {e}, deadline_str: {deadline_str}")
             return "Active"
     
     def get_submission_status(self, assignment_id, student_email):

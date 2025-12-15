@@ -20,7 +20,12 @@ class SubmissionManager:
             return None, "No timing data"
         
         try:
-            submitted_at = datetime.datetime.strptime(submitted_at_str, '%Y-%m-%d %H:%M')
+
+            if 'T' in submitted_at_str:
+                submitted_at = datetime.datetime.fromisoformat(submitted_at_str)
+            else:
+                submitted_at = datetime.datetime.strptime(submitted_at_str, '%Y-%m-%d %H:%M')
+
             deadline = datetime.datetime.fromisoformat(deadline_str)
             
             time_diff = deadline - submitted_at
@@ -242,26 +247,97 @@ class SubmissionManager:
                     deadline
                 )
                 timing_color = ft.Colors.GREEN if timing_status == "early" else ft.Colors.ORANGE
+
+                grade_field = ft.TextField(
+                    value=sub.get('grade', ''),
+                    label="Grade",
+                    width=100,
+                    border_color=ft.Colors.BLUE_400,
+                    focused_border_color=ft.Colors.BLUE_700,
+                    hint_text="Enter grade"
+                )
                 
-                grade_field = ft.TextField(value=sub.get('grade', ''), label="Grade", width=100)
                 feedback_field = ft.TextField(
                     value=sub.get('feedback', ''),
                     label="Feedback",
                     multiline=True,
-                    expand=True
+                    expand=True,
+                    min_lines=2,
+                    max_lines=4,
+                    border_color=ft.Colors.BLUE_400,
+                    focused_border_color=ft.Colors.BLUE_700,
+                    hint_text="Enter feedback for student"
                 )
+
+                save_status = ft.Text("", size=12)
+
+                def make_save_grade_handler(submission, grade_field_ref, feedback_field_ref, status_text_ref):
+                    def save_grade(e):
+
+                        original_text = e.control.text
+                        
+                        e.control.disabled = True
+                        e.control.text = "Saving..."
+                        status_text_ref.value = "💾 Saving..."
+                        status_text_ref.color = ft.Colors.BLUE
+                        self.todo.page.update()
+                        
+                        try:
+
+                            submission['grade'] = grade_field_ref.value
+                            submission['feedback'] = feedback_field_ref.value
+                            
+                            
+                            submission['graded_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+                            
+                            self.todo.data_manager.save_submissions(self.todo.submissions)
+
+                            if self.todo.notification_service and grade_field_ref.value:
+                                self.todo.notification_service.notify_grade_posted(
+                                    assignment, submission['student_email'], grade_field_ref.value
+                                )
+
+                            status_text_ref.value = "Saved successfully!"
+                            status_text_ref.color = ft.Colors.GREEN
+                            e.control.text = original_text
+                            e.control.disabled = False
+
+                            if submission.get('grade'):
+                                e.control.text = "Update Grade"
+
+                            self.todo.show_snackbar(
+                                f"✓ Grade saved for {student_name}",
+                                ft.Colors.GREEN
+                            )
+
+                            import threading
+                            def clear_status():
+                                import time
+                                time.sleep(2)
+                                status_text_ref.value = ""
+                                try:
+                                    self.todo.page.update()
+                                except:
+                                    pass
+                            
+                            threading.Thread(target=clear_status, daemon=True).start()
+                            
+                        except Exception as ex:
+                            status_text_ref.value = f"Error: {str(ex)}"
+                            status_text_ref.color = ft.Colors.RED
+                            e.control.text = original_text
+                            e.control.disabled = False
+                            
+                            self.todo.show_snackbar(
+                                f"✗ Failed to save grade: {str(ex)}",
+                                ft.Colors.RED
+                            )
+                        
+                        self.todo.page.update()
+                    
+                    return save_grade
                 
-                def save_grade(e, s=sub, g=grade_field, f=feedback_field):
-                    s['grade'] = g.value
-                    s['feedback'] = f.value
-                    self.todo.data_manager.save_submissions(self.todo.submissions)
-                    
-                    if self.todo.notification_service and g.value:
-                        self.todo.notification_service.notify_grade_posted(
-                            assignment, s['student_email'], g.value
-                        )
-                    
-                    self.todo.show_snackbar("Grade saved", ft.Colors.BLUE)
+                save_grade_handler = make_save_grade_handler(sub, grade_field, feedback_field, save_status)
                 
                 file_link_btn = ft.Container()
                 if sub.get('file_link'):
@@ -293,6 +369,40 @@ class SubmissionManager:
                         )
                     ])
                 
+                last_saved_container = ft.Container()
+                if sub.get('graded_at'):
+                    last_saved_container = ft.Container(
+                        content=ft.Row([
+                            ft.Icon(ft.Icons.HISTORY, size=14, color=ft.Colors.GREY_600),
+                            ft.Text(
+                                f"Last updated: {sub.get('graded_at')}",
+                                size=11,
+                                color=ft.Colors.GREY_600,
+                                italic=True
+                            )
+                        ], spacing=5),
+                        padding=ft.padding.only(top=5)
+                    )
+                
+                
+                button_text = "Update Grade" if sub.get('grade') else "Save Grade"
+                button_icon = ft.Icons.UPDATE if sub.get('grade') else ft.Icons.SAVE
+                
+                
+                edit_hint = ft.Container(
+                    content=ft.Row([
+                        ft.Icon(ft.Icons.EDIT, size=12, color=ft.Colors.BLUE_600),
+                        ft.Text(
+                            "You can edit and update grades anytime",
+                            size=10,
+                            color=ft.Colors.BLUE_600,
+                            italic=True
+                        )
+                    ], spacing=3),
+                    padding=ft.padding.only(top=3),
+                    visible=bool(sub.get('grade'))  
+                )
+                
                 card_content = ft.Column([
                     ft.Row([
                         status_icon,
@@ -313,8 +423,21 @@ class SubmissionManager:
                     ),
                     file_link_btn,
                     ft.Divider(),
+                    ft.Text("Grade & Feedback:", size=13, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_900),
                     ft.Row([grade_field, feedback_field]),
-                    ft.ElevatedButton("Save Grade", on_click=save_grade, icon=ft.Icons.SAVE)
+                    ft.Row([
+                        ft.ElevatedButton(
+                            button_text,
+                            on_click=save_grade_handler,
+                            icon=button_icon,
+                            bgcolor=ft.Colors.BLUE,
+                            color=ft.Colors.WHITE,
+                            tooltip="Click to save or update grade and feedback"
+                        ),
+                        save_status
+                    ], spacing=10),
+                    edit_hint,
+                    last_saved_container
                 ])
                 card_border_color = ft.Colors.GREEN_200
                 card_bg = ft.Colors.GREEN_50
