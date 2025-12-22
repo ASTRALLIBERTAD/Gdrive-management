@@ -227,6 +227,13 @@ class SubmissionManager:
         submitted_count = 0
         deadline = assignment.get('deadline')
         
+        overlay, close_overlay = self.todo.show_overlay(
+            submissions_list,
+            f"Submissions for: {assignment['title']} ({submitted_count}/{len(target_students)})",
+            width=600,
+            height=500
+        )
+        
         for student in target_students:
             sub = next((s for s in self.todo.submissions
                        if s['assignment_id'] == assignment['id'] and s['student_email'] == student['email']), None)
@@ -270,8 +277,9 @@ class SubmissionManager:
                         border=ft.border.all(1, ft.Colors.BLUE_200)
                     )
                     
-                    def make_toggle_edit_handler(student_email):
+                    def make_toggle_edit_handler(student_email, close_fn):
                         def toggle_edit_mode(e):
+                            close_fn(None)
                             self.view_submissions_dialog(assignment, force_edit_email=student_email)
                         return toggle_edit_mode
                     
@@ -281,7 +289,7 @@ class SubmissionManager:
                             ft.TextButton(
                                 "Edit Grade",
                                 icon=ft.Icons.EDIT,
-                                on_click=make_toggle_edit_handler(student['email'])
+                                on_click=make_toggle_edit_handler(student['email'], close_overlay)
                             ),
                             ft.Text(
                                 f"Last updated: {sub.get('graded_at', '')}",
@@ -311,7 +319,7 @@ class SubmissionManager:
                     
                     save_status = ft.Text("", size=12, color=ft.Colors.GREEN)
                     
-                    def make_save_handler(submission_ref, student_name_ref):
+                    def make_save_handler(submission_ref, student_name_ref, close_fn):
                         def save_grade(e):
                             e.control.disabled = True
                             e.control.text = "Saving..."
@@ -326,6 +334,7 @@ class SubmissionManager:
                                 
                                 self.todo.show_snackbar(f"✓ Grade saved for {student_name_ref}", ft.Colors.GREEN)
                                 
+                                close_fn(None)
                                 self.view_submissions_dialog(assignment)
                                 
                             except Exception as ex:
@@ -339,7 +348,7 @@ class SubmissionManager:
                         
                         return save_grade
                     
-                    save_handler = make_save_handler(sub, student_name)
+                    save_handler = make_save_handler(sub, student_name, close_overlay)
                     
                     grade_section = ft.Column([
                         grade_field,
@@ -389,7 +398,15 @@ class SubmissionManager:
                 card_content = ft.Column([
                     ft.Row([
                         status_icon,
-                        ft.Text(f"{student_name} ({student['email']})", weight=ft.FontWeight.BOLD, overflow=ft.TextOverflow.VISIBLE, no_wrap=False),
+                        ft.Container(
+                            content=ft.Text(
+                                f"{student_name} ({student['email']})", 
+                                weight=ft.FontWeight.BOLD, 
+                                overflow=ft.TextOverflow.VISIBLE, 
+                                no_wrap=False
+                            ),
+                            expand=True
+                        ),
                     ]),
                     ft.Text(status_text, size=12, color=ft.Colors.GREEN, overflow=ft.TextOverflow.VISIBLE, no_wrap=False),
                     ft.Container(
@@ -417,7 +434,15 @@ class SubmissionManager:
                 status_text = "Missing"
                 card_content = ft.Row([
                     status_icon,
-                    ft.Text(f"{student_name} ({student['email']})", weight=ft.FontWeight.BOLD, overflow=ft.TextOverflow.VISIBLE, no_wrap=False, expand=True),
+                    ft.Container(
+                        content=ft.Text(
+                            f"{student_name} ({student['email']})", 
+                            weight=ft.FontWeight.BOLD, 
+                            overflow=ft.TextOverflow.VISIBLE, 
+                            no_wrap=False
+                        ),
+                        expand=True
+                    ),
                     ft.Text(status_text, color=ft.Colors.RED, weight=ft.FontWeight.BOLD)
                 ])
                 card_border_color = ft.Colors.RED_200
@@ -432,12 +457,14 @@ class SubmissionManager:
             )
             submissions_list.controls.append(card)
         
-        overlay, close_overlay = self.todo.show_overlay(
-            submissions_list,
-            f"Submissions for: {assignment['title']} ({submitted_count}/{len(target_students)})",
-            width=600,
-            height=500
-        )
+        submissions_list.controls.insert(0, ft.Text(
+            f"Submissions: {submitted_count}/{len(target_students)}",
+            size=16,
+            weight=ft.FontWeight.BOLD,
+            color=ft.Colors.BLUE_700
+        ))
+        
+        self.todo.page.update()
     
     def _get_submission_status(self, assignment_id, student_email):
         for sub in self.todo.submissions:
