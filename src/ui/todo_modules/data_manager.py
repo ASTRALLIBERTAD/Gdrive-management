@@ -1,5 +1,5 @@
 from pathlib import Path
-from utils.common import load_json_file, save_json_file
+from utils.data_managers import SyncedDataManager, ConfigManager
 import datetime
 
 
@@ -10,45 +10,30 @@ class DataManager:
         self.drive_service = drive_service
         self.lms_root_id = self._load_lms_root_id()
         
-        self.assignments_file = self.data_dir / "assignments.json"
-        self.students_file = self.data_dir / "students.json"
-        self.submissions_file = self.data_dir / "submissions.json"
+        self.assignments_mgr = SyncedDataManager(
+            self.data_dir, 
+            "assignments.json", 
+            drive_service, 
+            self.lms_root_id
+        )
+        self.students_mgr = SyncedDataManager(
+            self.data_dir, 
+            "students.json", 
+            drive_service, 
+            self.lms_root_id
+        )
+        self.submissions_mgr = SyncedDataManager(
+            self.data_dir, 
+            "submissions.json", 
+            drive_service, 
+            self.lms_root_id
+        )
     
     def _load_lms_root_id(self):
-        config = load_json_file("lms_config.json", {})
-        return config.get("lms_root_id")
-    
-    def _load_from_drive_or_local(self, filepath, default=None):
-        if self.drive_service and self.lms_root_id:
-            filename = filepath.name
-            try:
-                file = self.drive_service.find_file(filename, self.lms_root_id)
-                if file:
-                    content = self.drive_service.read_file_content(file['id'])
-                    if content:
-                        import json
-                        return json.loads(content)
-            except Exception as e:
-                print(f"Error loading from Drive: {e}")
-        
-        return load_json_file(filepath, default)
-    
-    def _save_to_local_and_drive(self, filepath, data):
-        save_json_file(filepath, data)
-        
-        if self.drive_service and self.lms_root_id:
-            filename = filepath.name
-            try:
-                existing = self.drive_service.find_file(filename, self.lms_root_id)
-                if existing:
-                    self.drive_service.update_file(existing['id'], str(filepath))
-                else:
-                    self.drive_service.upload_file(str(filepath), parent_id=self.lms_root_id)
-            except Exception as e:
-                print(f"Error saving to Drive: {e}")
+        return ConfigManager.get_value("lms_config.json", "lms_root_id")
     
     def load_assignments(self):
-        assignments = self._load_from_drive_or_local(self.assignments_file, [])
+        assignments = self.assignments_mgr.load([])
         
         modified = False
         for i, assignment in enumerate(assignments):
@@ -62,16 +47,16 @@ class DataManager:
         return assignments
     
     def load_students(self):
-        return self._load_from_drive_or_local(self.students_file, [])
+        return self.students_mgr.load([])
     
     def load_submissions(self):
-        return self._load_from_drive_or_local(self.submissions_file, [])
+        return self.submissions_mgr.load([])
     
     def save_assignments(self, assignments):
-        self._save_to_local_and_drive(self.assignments_file, assignments)
+        self.assignments_mgr.save(assignments)
     
     def save_students(self, students):
-        self._save_to_local_and_drive(self.students_file, students)
+        self.students_mgr.save(students)
     
     def save_submissions(self, submissions):
-        self._save_to_local_and_drive(self.submissions_file, submissions)
+        self.submissions_mgr.save(submissions)

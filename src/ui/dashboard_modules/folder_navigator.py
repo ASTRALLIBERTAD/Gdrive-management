@@ -1,4 +1,5 @@
 import flet as ft
+from utils.service_patterns import ProgressIndicator, NavigationBar
 
 
 class FolderNavigator:
@@ -63,28 +64,17 @@ class FolderNavigator:
 
         self.dash.folder_list.controls.clear()
 
-        back_controls = []
-
-        if self.dash.folder_stack:
-            back_controls.append(
-                ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=lambda e: self.go_back())
-            )
-
-        back_btn = ft.Row(
-            [
-                *back_controls,
-                ft.Text(display_name, size=18, weight=ft.FontWeight.BOLD),
-                ft.ElevatedButton("Refresh", icon=ft.Icons.REFRESH, on_click=lambda e: self.refresh_folder_contents()),
-            ],
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        back_btn = NavigationBar.create_breadcrumb(
+            display_name,
+            on_back=lambda e: self.go_back() if self.dash.folder_stack else None,
+            on_refresh=lambda e: self.refresh_folder_contents()
         )
+        if not self.dash.folder_stack:
+            back_btn.controls = [c for c in back_btn.controls if not isinstance(c, ft.IconButton) or c.icon != ft.Icons.ARROW_BACK]
 
         self.dash.folder_list.controls.append(back_btn)
 
-        loading_indicator = ft.Row([
-            ft.ProgressRing(width=20, height=20),
-            ft.Text("Loading folder contents...", size=14)
-        ])
+        loading_indicator = ProgressIndicator.create_loading("Loading folder contents...")
         self.dash.folder_list.controls.append(loading_indicator)
         self.dash.page.update()
 

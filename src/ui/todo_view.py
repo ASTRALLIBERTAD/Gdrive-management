@@ -1,8 +1,8 @@
 import flet as ft
 import datetime
-import json
-import os
 from pathlib import Path
+from utils.common import load_json_file
+from utils.ui_components import DialogManager
 
 SAVED_LINKS_FILE = "saved_links.json"
 LMS_CONFIG_FILE = "lms_config.json"
@@ -29,6 +29,7 @@ class TodoView:
         self.assignment_manager = AssignmentManager(self)
         self.student_manager = StudentManager(self)
         self.submission_manager = SubmissionManager(self)
+        self.dialog_manager = DialogManager(page)
         
         self.assignments = self.data_manager.load_assignments()
         self.students = self.data_manager.load_students()
@@ -147,14 +148,8 @@ class TodoView:
         self.manage_students_btn = None
     
     def load_saved_links(self):
-        if os.path.exists(SAVED_LINKS_FILE):
-            try:
-                with open(SAVED_LINKS_FILE, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    return data.get("links", [])
-            except:
-                pass
-        return []
+        data = load_json_file(SAVED_LINKS_FILE, {})
+        return data.get("links", [])
     
     def get_folder_name_by_id(self, folder_id):
         for link in self.saved_links:
@@ -243,65 +238,10 @@ class TodoView:
         self.display_assignments()
     
     def show_snackbar(self, message, color=ft.Colors.BLUE):
-        self.page.snack_bar = ft.SnackBar(content=ft.Text(message), bgcolor=color)
-        self.page.snack_bar.open = True
-        self.page.update()
+        self.dialog_manager.show_snackbar(message, color)
     
     def show_overlay(self, content, title=None, width=400, height=None):
-        def close_overlay(e):
-            if overlay in self.page.overlay:
-                self.page.overlay.remove(overlay)
-                self.page.update()
-        
-        header_controls = []
-        if title:
-            header_controls.append(
-                ft.Text(
-                    title, 
-                    size=20, 
-                    weight=ft.FontWeight.BOLD,
-                    overflow=ft.TextOverflow.VISIBLE,
-                    no_wrap=False,
-                    expand=True
-                )
-            )
-        
-        header_controls.append(ft.IconButton(icon=ft.Icons.CLOSE, on_click=close_overlay))
-        
-        if height and isinstance(content, ft.Column) and content.scroll:
-            content_wrapper = ft.Container(
-                content=content,
-                expand=True,
-                padding=10
-            )
-        else:
-            content_wrapper = content
-        
-        overlay_content = ft.Column([
-            ft.Row(header_controls, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-            ft.Divider(),
-            content_wrapper
-        ], tight=True, spacing=10, expand=True if height else False)
-        
-        overlay = ft.Container(
-            content=ft.Container(
-                content=overlay_content,
-                padding=20,
-                bgcolor=ft.Colors.WHITE,
-                border_radius=10,
-                width=width,
-                height=height,
-                shadow=ft.BoxShadow(blur_radius=20, color=ft.Colors.with_opacity(0.3, ft.Colors.BLACK))
-            ),
-            alignment=ft.alignment.center,
-            expand=True,
-            bgcolor=ft.Colors.with_opacity(0.5, ft.Colors.BLACK),
-            on_click=lambda e: None
-        )
-        
-        self.page.overlay.append(overlay)
-        self.page.update()
-        return overlay, close_overlay
+        return self.dialog_manager.show_overlay(content, title, width, height)
 
     def get_view(self):
 

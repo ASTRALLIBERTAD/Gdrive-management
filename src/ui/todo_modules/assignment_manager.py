@@ -1,11 +1,15 @@
 import flet as ft
 import datetime
+from utils.validators import Validator, DateTimeUtils
+from utils.ui_components import DialogManager
+from utils.common import open_drive_folder, open_drive_file, open_url
 
 
 class AssignmentManager:
     
     def __init__(self, todo_view):
         self.todo = todo_view
+        self.dialog_mgr = DialogManager(todo_view.page)
         
         try:
             from services.file_preview_service import FilePreviewService
@@ -21,23 +25,20 @@ class AssignmentManager:
         drive_folder_id = self.todo.selected_drive_folder_id
         target_for = self.todo.target_dropdown.value or "all"
         
-        errors = []
+        errors = Validator.validate_required_fields({
+            "Assignment title": title,
+            "Subject": subject
+        })
         
-        if not title:
-            errors.append("Assignment title is required")
-            self.todo.assignment_title.error_text = "Required"
-            self.todo.assignment_title.border_color = ft.Colors.RED
-        else:
-            self.todo.assignment_title.error_text = None
-            self.todo.assignment_title.border_color = None
-        
-        if not subject:
-            errors.append("Subject must be selected")
-            self.todo.subject_dropdown.error_text = "Required"
-            self.todo.subject_dropdown.border_color = ft.Colors.RED
-        else:
-            self.todo.subject_dropdown.error_text = None
-            self.todo.subject_dropdown.border_color = None
+        if errors:
+            for field, error in [("assignment_title", "Title"), ("subject_dropdown", "Subject")]:
+                widget = getattr(self.todo, field)
+                if error in str(errors):
+                    widget.error_text = "Required"
+                    widget.border_color = ft.Colors.RED
+                else:
+                    widget.error_text = None
+                    widget.border_color = None
         
         final_deadline = None
         if self.todo.selected_date_value and self.todo.selected_time_value:
@@ -52,27 +53,13 @@ class AssignmentManager:
             )
         
         if final_deadline:
-            now = datetime.datetime.now()
-            if final_deadline <= now:
-                time_diff = now - final_deadline
-                hours_ago = time_diff.total_seconds() / 3600
-                
-                if hours_ago < 1:
-                    minutes_ago = time_diff.total_seconds() / 60
-                    time_ago_str = f"{int(minutes_ago)} minutes ago"
-                elif hours_ago < 24:
-                    time_ago_str = f"{int(hours_ago)} hours ago"
-                else:
-                    days_ago = time_diff.days
-                    time_ago_str = f"{days_ago} days ago"
-                
-                errors.append(f"⏰ Deadline is in the past ({time_ago_str})")
-                
-                self.todo.selected_deadline_display.value = f"Invalid: {time_ago_str}"
+            if Validator.is_past_datetime(final_deadline):
+                time_ago = DateTimeUtils.time_since(final_deadline)
+                errors.append(f"⏰ Deadline is in the past ({time_ago})")
+                self.todo.selected_deadline_display.value = f"Invalid: {time_ago}"
                 self.todo.selected_deadline_display.color = ft.Colors.RED
             else:
-
-                deadline_str = final_deadline.strftime('%B %d, %Y at %I:%M %p')
+                deadline_str = DateTimeUtils.format_datetime(final_deadline, '%B %d, %Y at %I:%M %p')
                 self.todo.selected_deadline_display.value = f"✓ Deadline: {deadline_str}"
                 self.todo.selected_deadline_display.color = ft.Colors.GREEN
         else:
@@ -102,8 +89,7 @@ class AssignmentManager:
         
         if self.todo.selected_attachment["path"] and self.todo.drive_service and self.todo.data_manager.lms_root_id:
             try:
-                self.todo.show_snackbar("Uploading attachment to subject folder...", ft.Colors.BLUE)
-                self.todo.page.update()
+                self.dialog_mgr.show_snackbar("Uploading attachment to subject folder...", ft.Colors.BLUE)
                 
                 result = self.todo.storage_manager.upload_assignment_attachment(
                     self.todo.selected_attachment["path"],
@@ -115,13 +101,13 @@ class AssignmentManager:
                 if result:
                     new_assignment['attachment_file_id'] = result.get('id')
                     new_assignment['attachment_file_link'] = result.get('webViewLink')
-                    self.todo.show_snackbar("Attachment uploaded successfully!", ft.Colors.GREEN)
+                    self.dialog_mgr.show_snackbar("Attachment uploaded successfully!", ft.Colors.GREEN)
                 else:
-                    self.todo.show_snackbar("Warning: Attachment upload failed", ft.Colors.ORANGE)
+                    self.dialog_mgr.show_snackbar("Warning: Attachment upload failed", ft.Colors.ORANGE)
             except Exception as ex:
-                self.todo.show_snackbar(f"Attachment upload error: {str(ex)}", ft.Colors.ORANGE)
+                self.dialog_mgr.show_snackbar(f"Attachment upload error: {str(ex)}", ft.Colors.ORANGE)
         elif self.todo.selected_attachment["path"] and not self.todo.data_manager.lms_root_id:
-            self.todo.show_snackbar("Warning: No LMS storage folder configured. Attachment not uploaded.", ft.Colors.ORANGE)
+            self.dialog_mgr.show_snackbar("Warning: No LMS storage folder configured. Attachment not uploaded.", ft.Colors.ORANGE)
         
         self.todo.assignments.append(new_assignment)
         self.todo.data_manager.save_assignments(self.todo.assignments)
@@ -132,61 +118,9 @@ class AssignmentManager:
         self._reset_form()
         
         self.todo.display_assignments()
-        self.todo.show_snackbar("Assignment added! Students notified.", ft.Colors.GREEN)
-    
-    def show_past_deadline_dialog(self, deadline, current_time):
-        
-        def close_dialog(e):
-            dialog.open = False
-            self.todo.page.update()
-        
-        deadline_str = deadline.strftime('%I:%M %p on %B %d, %Y')
-        current_str = current_time.strftime('%I:%M %p on %B %d, %Y')
-        
-        dialog = ft.AlertDialog(
-            title=ft.Row([
-                ft.Icon(ft.Icons.ERROR, color=ft.Colors.RED, size=30),
-                ft.Text("Deadline is in the Past", color=ft.Colors.RED)
-            ]),
-            content=ft.Column([
-                ft.Text("Cannot create assignment with a past deadline.", weight=ft.FontWeight.BOLD),
-                ft.Divider(),
-                ft.Container(
-                    content=ft.Column([
-                        ft.Row([
-                            ft.Icon(ft.Icons.SCHEDULE, size=20, color=ft.Colors.GREY_700),
-                            ft.Text("Selected deadline:", weight=ft.FontWeight.BOLD)
-                        ]),
-                        ft.Text(deadline_str, size=15, color=ft.Colors.RED),
-                        ft.Container(height=10),
-                        ft.Row([
-                            ft.Icon(ft.Icons.ACCESS_TIME, size=20, color=ft.Colors.GREY_700),
-                            ft.Text("Current time:", weight=ft.FontWeight.BOLD)
-                        ]),
-                        ft.Text(current_str, size=15, color=ft.Colors.GREEN),
-                    ]),
-                    padding=10,
-                    bgcolor=ft.Colors.with_opacity(0.1, ft.Colors.ORANGE),
-                    border_radius=5
-                ),
-                ft.Container(height=10),
-                ft.Text("Please select a future date and time.", italic=True, color=ft.Colors.GREY_700)
-            ], tight=True, spacing=10),
-            actions=[
-                ft.TextButton("OK", on_click=close_dialog)
-            ],
-        )
-        
-        self.todo.page.dialog = dialog
-        dialog.open = True
-        self.todo.page.update()
+        self.dialog_mgr.show_snackbar("Assignment added! Students notified.", ft.Colors.GREEN)
     
     def show_validation_errors(self, errors):
-        
-        def close_dialog(e):
-            dialog.open = False
-            self.todo.page.update()
-        
         error_list = ft.Column([
             ft.Row([
                 ft.Icon(ft.Icons.ERROR_OUTLINE, size=16, color=ft.Colors.RED),
@@ -195,35 +129,24 @@ class AssignmentManager:
             for error in errors
         ], spacing=8)
         
-        dialog = ft.AlertDialog(
-            title=ft.Row([
-                ft.Icon(ft.Icons.WARNING, color=ft.Colors.ORANGE, size=30),
-                ft.Text("Cannot Create Assignment", color=ft.Colors.ORANGE)
-            ]),
-            content=ft.Column([
-                ft.Text("Please fix the following errors:", weight=ft.FontWeight.BOLD),
-                ft.Divider(),
-                ft.Container(
-                    content=error_list,
-                    padding=10,
-                    bgcolor=ft.Colors.with_opacity(0.1, ft.Colors.RED),
-                    border_radius=5
-                ),
-                ft.Container(height=10),
-                ft.Text("Fill in all required fields and try again.", 
-                       italic=True, color=ft.Colors.GREY_700, size=12)
-            ], tight=True, spacing=10),
-            actions=[
-                ft.TextButton("OK, I'll Fix It", on_click=close_dialog)
-            ],
-        )
+        content = ft.Column([
+            ft.Text("Please fix the following errors:", weight=ft.FontWeight.BOLD),
+            ft.Divider(),
+            ft.Container(
+                content=error_list,
+                padding=10,
+                bgcolor=ft.Colors.with_opacity(0.1, ft.Colors.RED),
+                border_radius=5
+            ),
+            ft.Container(height=10),
+            ft.Text("Fill in all required fields and try again.", 
+                   italic=True, color=ft.Colors.GREY_700, size=12)
+        ], tight=True, spacing=10)
         
-        self.todo.page.dialog = dialog
-        dialog.open = True
-        self.todo.page.update()
+        self.dialog_mgr.show_overlay(content, "Cannot Create Assignment", width=400)
         
         error_count = len(errors)
-        self.todo.show_snackbar(
+        self.dialog_mgr.show_snackbar(
             f"{error_count} error{'s' if error_count > 1 else ''} - Please fix before creating assignment",
             ft.Colors.RED
         )
@@ -318,69 +241,32 @@ class AssignmentManager:
                 self.todo.assignment_column.controls.append(card)
     
     def create_teacher_assignment_card(self, assignment):
+        from utils.ui_components import CardBuilder
+        
         status = self.get_status(assignment.get('deadline'))
-        time_remaining = self.get_time_remaining(assignment.get('deadline'))
+        time_remaining = DateTimeUtils.time_until(assignment.get('deadline')) if assignment.get('deadline') else "No deadline"
         submission_count = self.get_submission_count(assignment['id'])
         total_students = len(self.todo.students)
         
-        status_color = {
-            "Active": ft.Colors.GREEN,
-            "Completed": ft.Colors.BLUE,
-            "Overdue": ft.Colors.RED
-        }.get(status, ft.Colors.GREY)
+        status_badge = CardBuilder.create_status_badge(
+            status,
+            {
+                "Active": ft.Colors.GREEN,
+                "Completed": ft.Colors.BLUE,
+                "Overdue": ft.Colors.RED
+            }.get(status, ft.Colors.GREY)
+        )
         
         drive_folder_id = assignment.get('drive_folder_id')
         drive_folder_name = self.todo.get_folder_name_by_id(drive_folder_id) if drive_folder_id else None
         
-        drive_row = ft.Row([
-            ft.Icon(ft.Icons.FOLDER_SHARED, size=16, color=ft.Colors.BLUE),
-            ft.Text(f"Drive: {drive_folder_name}", size=13, color=ft.Colors.BLUE),
-            ft.IconButton(
-                icon=ft.Icons.OPEN_IN_NEW,
-                icon_size=16,
-                tooltip="Open in Drive",
-                on_click=lambda e, fid=drive_folder_id: self.open_drive_folder(fid)
-            ) if self.todo.drive_service else ft.Container()
-        ]) if drive_folder_name else ft.Container()
+        drive_row = CardBuilder.create_icon_text_row(
+            ft.Icons.FOLDER_SHARED,
+            f"Drive: {drive_folder_name}",
+            ft.Colors.BLUE
+        ) if drive_folder_name else ft.Container()
         
-        attachment_row = ft.Container()
-        if assignment.get('attachment'):
-            attachment_controls = [
-                ft.Icon(ft.Icons.ATTACH_FILE, size=16, color=ft.Colors.GREY_700),
-                ft.Text(f"Attachment: {assignment['attachment']}", size=13, color=ft.Colors.GREY_700)
-            ]
-            
-            if assignment.get('attachment_file_id') and self.file_preview:
-                attachment_controls.append(
-                    ft.IconButton(
-                        icon=ft.Icons.VISIBILITY,
-                        icon_size=16,
-                        tooltip="Preview Attachment",
-                        on_click=lambda e, fid=assignment['attachment_file_id'], 
-                                fname=assignment['attachment']: self._preview_attachment(fid, fname)
-                    )
-                )
-            
-            if assignment.get('attachment_file_link'):
-                attachment_controls.append(
-                    ft.IconButton(
-                        icon=ft.Icons.OPEN_IN_NEW,
-                        icon_size=16,
-                        tooltip="Open in Drive",
-                        on_click=lambda e, link=assignment['attachment_file_link']: self._open_link(link)
-                    )
-                )
-            elif assignment.get('attachment_file_id'):
-                attachment_controls.append(
-                    ft.IconButton(
-                        icon=ft.Icons.OPEN_IN_NEW,
-                        icon_size=16,
-                        tooltip="Open in Drive",
-                        on_click=lambda e, fid=assignment['attachment_file_id']: self._open_drive_file(fid)
-                    )
-                )
-            
-            attachment_row = ft.Row(attachment_controls)
+        attachment_row = self._create_attachment_row(assignment, is_teacher=True)
         
         target_for = assignment.get('target_for', 'all')
         target_labels = {'all': 'All Students', 'bridging': 'Bridging Only', 'regular': 'Regular Only'}
@@ -392,213 +278,192 @@ class AssignmentManager:
             border_radius=10
         )
         
-        return ft.Container(
-            content=ft.Column([
-                ft.Row([
-                    ft.Text(assignment['title'], size=18, weight=ft.FontWeight.BOLD, expand=True),
-                    ft.Container(
-                        content=ft.Text(status, size=12, color=ft.Colors.WHITE),
-                        bgcolor=status_color,
-                        padding=5,
-                        border_radius=5
-                    ),
-                ]),
-                ft.Divider(height=1),
-                ft.Text(f"Subject: {assignment.get('subject', 'N/A')}", size=14),
-                ft.Text(assignment.get('description', 'No description'), size=14, max_lines=3),
-                ft.Row([
-                    ft.Icon(ft.Icons.ACCESS_TIME, size=16),
-                    ft.Text(time_remaining, size=13, italic=True)
-                ]),
-                ft.Text(f"Max Score: {assignment.get('max_score', 'N/A')}", size=13),
-                drive_row,
-                attachment_row,
-                ft.Row([
-                    ft.Icon(ft.Icons.PEOPLE, size=16),
-                    ft.Text(f"Submissions: {submission_count}/{total_students}", size=13),
-                    target_badge
-                ]),
-                ft.Row([
-                    ft.ElevatedButton(
-                        "View Submissions",
-                        on_click=lambda e, a=assignment: self.todo.submission_manager.view_submissions_dialog(a),
-                        icon=ft.Icons.ASSIGNMENT_TURNED_IN
-                    ),
-                    ft.IconButton(
-                        icon=ft.Icons.EDIT,
-                        tooltip="Edit",
-                        on_click=lambda e, a=assignment: self.edit_assignment_dialog(a)
-                    ),
-                    ft.IconButton(
-                        icon=ft.Icons.DELETE,
-                        tooltip="Delete",
-                        icon_color=ft.Colors.RED,
-                        on_click=lambda e, a=assignment: self.delete_assignment(a)
-                    ),
-                ], alignment=ft.MainAxisAlignment.END, spacing=0),
+        content = ft.Column([
+            ft.Row([
+                ft.Text(assignment['title'], size=18, weight=ft.FontWeight.BOLD, expand=True),
+                status_badge,
             ]),
-            padding=10,
-            border_radius=10,
+            ft.Divider(height=1),
+            ft.Text(f"Subject: {assignment.get('subject', 'N/A')}", size=14),
+            ft.Text(assignment.get('description', 'No description'), size=14, max_lines=3),
+            CardBuilder.create_icon_text_row(ft.Icons.ACCESS_TIME, time_remaining, text_size=13),
+            ft.Text(f"Max Score: {assignment.get('max_score', 'N/A')}", size=13),
+            drive_row,
+            attachment_row,
+            CardBuilder.create_icon_text_row(
+                ft.Icons.PEOPLE, 
+                f"Submissions: {submission_count}/{total_students}"
+            ),
+            target_badge,
+            ft.Row([
+                ft.ElevatedButton(
+                    "View Submissions",
+                    on_click=lambda e, a=assignment: self.todo.submission_manager.view_submissions_dialog(a),
+                    icon=ft.Icons.ASSIGNMENT_TURNED_IN
+                ),
+                ft.IconButton(
+                    icon=ft.Icons.EDIT,
+                    tooltip="Edit",
+                    on_click=lambda e, a=assignment: self.edit_assignment_dialog(a)
+                ),
+                ft.IconButton(
+                    icon=ft.Icons.DELETE,
+                    tooltip="Delete",
+                    icon_color=ft.Colors.RED,
+                    on_click=lambda e, a=assignment: self.delete_assignment(a)
+                ),
+            ], alignment=ft.MainAxisAlignment.END, spacing=0),
+        ])
+        
+        return CardBuilder.create_container(
+            content,
             bgcolor=ft.Colors.with_opacity(0.05, ft.Colors.BLUE),
-            border=ft.border.all(1, ft.Colors.BLUE_GREY_100)
+            border_color=ft.Colors.BLUE_GREY_100
         )
     
     def create_student_assignment_card(self, assignment):
+        from utils.ui_components import CardBuilder
+        
         status = self.get_status(assignment.get('deadline'), assignment['id'])
-        time_remaining = self.get_time_remaining(assignment.get('deadline'))
+        time_remaining = DateTimeUtils.time_until(assignment.get('deadline')) if assignment.get('deadline') else "No deadline"
         submission = self.get_submission_status(assignment['id'], self.todo.current_student_email)
         
-        status_color = {
-            "Active": ft.Colors.GREEN,
-            "Completed": ft.Colors.BLUE,
-            "Overdue": ft.Colors.RED
-        }.get(status, ft.Colors.GREY)
+        status_badge = CardBuilder.create_status_badge(
+            status,
+            {
+                "Active": ft.Colors.GREEN,
+                "Completed": ft.Colors.BLUE,
+                "Overdue": ft.Colors.RED
+            }.get(status, ft.Colors.GREY)
+        )
         
         drive_folder_id = assignment.get('drive_folder_id')
         drive_folder_name = self.todo.get_folder_name_by_id(drive_folder_id) if drive_folder_id else None
         
-        attachment_row = ft.Container()
-        if assignment.get('attachment'):
-            attachment_controls = [
-                ft.Icon(ft.Icons.ATTACH_FILE, size=16, color=ft.Colors.PURPLE),
-                ft.Text(f"Attachment: {assignment['attachment']}", size=13, color=ft.Colors.PURPLE, 
-                       weight=ft.FontWeight.BOLD)
-            ]
-            
-            if assignment.get('attachment_file_id') and self.file_preview:
-                attachment_controls.append(
-                    ft.IconButton(
-                        icon=ft.Icons.VISIBILITY,
-                        icon_size=18,
-                        icon_color=ft.Colors.BLUE,
-                        tooltip="Preview Attachment",
-                        on_click=lambda e, fid=assignment['attachment_file_id'], 
-                                fname=assignment['attachment']: self._preview_attachment(fid, fname)
-                    )
+        attachment_row = self._create_attachment_row(assignment, is_teacher=False)
+        
+        content = ft.Column([
+            ft.Row([
+                ft.Text(assignment['title'], size=18, weight=ft.FontWeight.BOLD, expand=True),
+                status_badge,
+            ]),
+            ft.Divider(height=1),
+            ft.Text(f"Subject: {assignment.get('subject', 'N/A')}", size=14),
+            ft.Text(assignment.get('description', 'No description'), size=14, max_lines=3),
+            CardBuilder.create_icon_text_row(ft.Icons.ACCESS_TIME, time_remaining, text_size=13),
+            ft.Text(f"Max Score: {assignment.get('max_score', 'N/A')}", size=13),
+            CardBuilder.create_icon_text_row(
+                ft.Icons.FOLDER_SHARED,
+                f"Submit to: {drive_folder_name}",
+                ft.Colors.BLUE
+            ) if drive_folder_name else ft.Container(),
+            attachment_row,
+            CardBuilder.create_icon_text_row(
+                ft.Icons.ASSIGNMENT,
+                f"Status: {'Submitted ✓' if submission else 'Not Submitted'}",
+                None,
+                13
+            ),
+            self._create_submission_feedback_row(submission) if submission else ft.Container(),
+            ft.Row([
+                ft.ElevatedButton(
+                    "Preview Submission",
+                    icon=ft.Icons.VISIBILITY,
+                    on_click=lambda e, s=submission: self._preview_submission_file(s)
+                ) if submission and submission.get('file_id') and self.file_preview else ft.Container(),
+                ft.ElevatedButton(
+                    "Submit Assignment" if not submission else "Resubmit",
+                    on_click=lambda e, a=assignment: self.todo.submission_manager.submit_assignment_dialog(a),
+                    icon=ft.Icons.UPLOAD,
+                    bgcolor=ft.Colors.BLUE if not submission else ft.Colors.ORANGE
+                ) if status != "Overdue" or submission else ft.Text("Deadline passed", color=ft.Colors.RED)
+            ], spacing=10)
+        ], spacing=5)
+        
+        return CardBuilder.create_container(
+            content,
+            padding=15,
+            bgcolor=ft.Colors.with_opacity(0.05, ft.Colors.BLUE),
+            border_color=ft.Colors.BLUE_GREY_100
+        )
+    
+    def _create_attachment_row(self, assignment, is_teacher):
+        if not assignment.get('attachment'):
+            return ft.Container()
+        
+        attachment_controls = [
+            ft.Icon(ft.Icons.ATTACH_FILE, size=16, color=ft.Colors.GREY_700 if is_teacher else ft.Colors.PURPLE),
+            ft.Text(
+                f"Attachment: {assignment['attachment']}", 
+                size=13, 
+                color=ft.Colors.GREY_700 if is_teacher else ft.Colors.PURPLE,
+                weight=ft.FontWeight.NORMAL if is_teacher else ft.FontWeight.BOLD
+            )
+        ]
+        
+        if assignment.get('attachment_file_id') and self.file_preview:
+            attachment_controls.append(
+                ft.IconButton(
+                    icon=ft.Icons.VISIBILITY,
+                    icon_size=16 if is_teacher else 18,
+                    icon_color=ft.Colors.BLUE if not is_teacher else None,
+                    tooltip="Preview Attachment",
+                    on_click=lambda e, fid=assignment['attachment_file_id'], 
+                            fname=assignment['attachment']: self._preview_attachment(fid, fname)
                 )
-            
-            if assignment.get('attachment_file_link'):
-                attachment_controls.append(
-                    ft.IconButton(
-                        icon=ft.Icons.DOWNLOAD,
-                        icon_size=18,
-                        icon_color=ft.Colors.GREEN,
-                        tooltip="Download Attachment",
-                        on_click=lambda e, link=assignment['attachment_file_link']: self._open_link(link)
-                    )
+            )
+        
+        if assignment.get('attachment_file_link'):
+            attachment_controls.append(
+                ft.IconButton(
+                    icon=ft.Icons.OPEN_IN_NEW if is_teacher else ft.Icons.DOWNLOAD,
+                    icon_size=16 if is_teacher else 18,
+                    icon_color=ft.Colors.GREEN if not is_teacher else None,
+                    tooltip="Open in Drive" if is_teacher else "Download Attachment",
+                    on_click=lambda e, link=assignment['attachment_file_link']: self._open_link(link)
                 )
-            elif assignment.get('attachment_file_id'):
-                attachment_controls.append(
-                    ft.IconButton(
-                        icon=ft.Icons.DOWNLOAD,
-                        icon_size=18,
-                        icon_color=ft.Colors.GREEN,
-                        tooltip="Download Attachment",
-                        on_click=lambda e, fid=assignment['attachment_file_id']: self._open_drive_file(fid)
-                    )
+            )
+        elif assignment.get('attachment_file_id'):
+            attachment_controls.append(
+                ft.IconButton(
+                    icon=ft.Icons.OPEN_IN_NEW if is_teacher else ft.Icons.DOWNLOAD,
+                    icon_size=16 if is_teacher else 18,
+                    icon_color=ft.Colors.GREEN if not is_teacher else None,
+                    tooltip="Open in Drive" if is_teacher else "Download Attachment",
+                    on_click=lambda e, fid=assignment['attachment_file_id']: self._open_drive_file(fid)
                 )
-            
-            attachment_row = ft.Container(
-                content=ft.Row(attachment_controls),
+            )
+        
+        row = ft.Row(attachment_controls)
+        
+        if not is_teacher:
+            return ft.Container(
+                content=row,
                 bgcolor=ft.Colors.with_opacity(0.1, ft.Colors.PURPLE),
                 padding=8,
                 border_radius=5
             )
         
-        upload_btn = ft.Container()
-        
-        return ft.Container(
-            content=ft.Column([
-                ft.Row([
-                    ft.Text(assignment['title'], size=18, weight=ft.FontWeight.BOLD, expand=True),
-                    ft.Container(
-                        content=ft.Text(status, size=12, color=ft.Colors.WHITE),
-                        bgcolor=status_color,
-                        padding=5,
-                        border_radius=5
-                    ),
-                ]),
-                ft.Divider(height=1),
-                ft.Text(f"Subject: {assignment.get('subject', 'N/A')}", size=14),
-                ft.Text(assignment.get('description', 'No description'), size=14, max_lines=3),
-                ft.Row([
-                    ft.Icon(ft.Icons.ACCESS_TIME, size=16),
-                    ft.Text(time_remaining, size=13, italic=True)
-                ]),
-                ft.Text(f"Max Score: {assignment.get('max_score', 'N/A')}", size=13),
-                ft.Row([
-                    ft.Icon(ft.Icons.FOLDER_SHARED, size=16, color=ft.Colors.BLUE),
-                    ft.Text(f"Submit to: {drive_folder_name}", size=13, color=ft.Colors.BLUE),
-                ]) if drive_folder_name else ft.Container(),
-                attachment_row,
-                ft.Row([
-                    ft.Icon(ft.Icons.ASSIGNMENT, size=16),
-                    ft.Text(
-                        f"Status: {'Submitted ✓' if submission else 'Not Submitted'}",
-                        size=13,
-                        color=ft.Colors.GREEN if submission else ft.Colors.ORANGE
-                    )
-                ]),
-                ft.Row([
-                    ft.Text(
-                        f"Grade: {submission.get('grade', 'Not graded')}" if submission else "",
-                        size=13,
-                        weight=ft.FontWeight.BOLD,
-                        color=ft.Colors.BLUE
-                    ),
-                    ft.Text(
-                        f"Feedback: {submission.get('feedback', 'No feedback')}" if submission else "",
-                        size=12,
-                        italic=True,
-                        expand=True
-                    )
-                ]) if submission else ft.Container(),
-                ft.Row([
-                    ft.ElevatedButton(
-                        "Preview Submission",
-                        icon=ft.Icons.VISIBILITY,
-                        on_click=lambda e, s=submission: self._preview_submission_file(s)
-                    ) if submission and submission.get('file_id') and self.file_preview else ft.Container(),
-                    upload_btn,
-                    ft.ElevatedButton(
-                        "Submit Assignment" if not submission else "Resubmit",
-                        on_click=lambda e, a=assignment: self.todo.submission_manager.submit_assignment_dialog(a),
-                        icon=ft.Icons.UPLOAD,
-                        bgcolor=ft.Colors.BLUE if not submission else ft.Colors.ORANGE
-                    ) if status != "Overdue" or submission else ft.Text("Deadline passed", color=ft.Colors.RED)
-                ], spacing=10)
-            ], spacing=5),
-            padding=15,
-            border_radius=10,
-            bgcolor=ft.Colors.with_opacity(0.05, ft.Colors.BLUE),
-            border=ft.border.all(1, ft.Colors.BLUE_GREY_100)
-        )
+        return row
+    
+    def _create_submission_feedback_row(self, submission):
+        return ft.Row([
+            ft.Text(
+                f"Grade: {submission.get('grade', 'Not graded')}",
+                size=13,
+                weight=ft.FontWeight.BOLD,
+                color=ft.Colors.BLUE
+            ),
+            ft.Text(
+                f"Feedback: {submission.get('feedback', 'No feedback')}",
+                size=12,
+                italic=True,
+                expand=True
+            )
+        ])
     
     def get_time_remaining(self, deadline_str):
-        if not deadline_str:
-            return "No deadline"
-        try:
-            deadline = datetime.datetime.fromisoformat(deadline_str)
-            now = datetime.datetime.now()
-            remaining = deadline - now
-            
-            if remaining.total_seconds() <= 0:
-                return "Overdue"
-            
-            days = remaining.days
-            hours = remaining.seconds // 3600
-            
-            if days > 0:
-                return f"⏱️ {days}d {hours}h remaining"
-            elif hours > 0:
-                minutes = (remaining.seconds % 3600) // 60
-                return f"⏱️ {hours}h {minutes}m remaining"
-            else:
-                minutes = remaining.seconds // 60
-                return f"⏱️ {minutes}m remaining"
-        except Exception as e:
-            print(f"Error parsing deadline: {e}")
-            return "Invalid deadline"
+        return DateTimeUtils.time_until(deadline_str) if deadline_str else "No deadline"
     
     def get_status(self, deadline_str, assignment_id=None):
         if self.todo.current_mode == "student" and assignment_id and self.todo.current_student_email:
@@ -609,16 +474,7 @@ class AssignmentManager:
         if not deadline_str:
             return "Active"
         
-        try:
-            deadline = datetime.datetime.fromisoformat(deadline_str)
-            now = datetime.datetime.now()
-            
-            if now > deadline:
-                return "Overdue"
-            return "Active"
-        except Exception as e:
-            print(f"Error parsing deadline in get_status: {e}, deadline_str: {deadline_str}")
-            return "Active"
+        return "Overdue" if Validator.is_past_datetime(deadline_str) else "Active"
     
     def get_submission_status(self, assignment_id, student_email):
         for sub in self.todo.submissions:
@@ -631,9 +487,7 @@ class AssignmentManager:
     
     def open_drive_folder(self, folder_id):
         if self.todo.drive_service:
-            import webbrowser
-            url = f"https://drive.google.com/drive/folders/{folder_id}"
-            webbrowser.open(url)
+            open_drive_folder(folder_id)
     
     def _preview_submission_file(self, submission):
         if self.file_preview and submission.get('file_id'):
@@ -645,23 +499,26 @@ class AssignmentManager:
             self.file_preview.show_preview(file_id=file_id, file_name=file_name)
     
     def _open_link(self, link):
-        import webbrowser
-        webbrowser.open(link)
+        open_url(link)
     
     def _open_drive_file(self, file_id):
-        import webbrowser
-        webbrowser.open(f"https://drive.google.com/file/d/{file_id}/view")
+        open_drive_file(file_id)
     
     def edit_assignment_dialog(self, assignment):
-        title_field = ft.TextField(value=assignment['title'], label="Title", width=320)
-        desc_field = ft.TextField(
+        from utils.ui_components import FormField
+        
+        title_field = FormField.create_text_field(value=assignment['title'], label="Title", width=320)
+        desc_field = FormField.create_text_field(
             value=assignment.get('description', ''),
             label="Description",
             multiline=True,
-            min_lines=2,
             width=320
         )
-        score_field = ft.TextField(value=assignment.get('max_score', '100'), label="Max Score", width=100)
+        score_field = FormField.create_text_field(
+            value=assignment.get('max_score', '100'), 
+            label="Max Score", 
+            width=100
+        )
         
         current_fid = [assignment.get('drive_folder_id')]
         initial_name = "None"
@@ -670,23 +527,20 @@ class AssignmentManager:
         
         folder_label = ft.Text(f"Folder: {initial_name}", size=12, italic=True)
         
-        current_attachment = {'path': None, 'name': assignment.get('attachment'), 
-                             'file_id': assignment.get('attachment_file_id')}
+        current_attachment = {
+            'path': None, 
+            'name': assignment.get('attachment'), 
+            'file_id': assignment.get('attachment_file_id')
+        }
         attachment_display = ft.Text(
             f"Current: {current_attachment['name']}" if current_attachment['name'] else "No attachment",
             size=12, italic=True
         )
         
-        def on_file_picked(e: ft.FilePickerResultEvent):
-            if e.files:
-                current_attachment['path'] = e.files[0].path
-                current_attachment['name'] = e.files[0].name
-                attachment_display.value = f"New: {e.files[0].name}"
-                self.todo.page.update()
-        
-        file_picker = ft.FilePicker(on_result=on_file_picked)
-        self.todo.page.overlay.append(file_picker)
-        self.todo.page.update()
+        file_picker = FormField.create_file_picker(
+            self.todo.page,
+            lambda e: self._handle_file_picked(e, current_attachment, attachment_display)
+        )
         
         change_attachment_btn = ft.TextButton(
             "Change Attachment",
@@ -709,9 +563,8 @@ class AssignmentManager:
             )
         )
         
-        target_dropdown = ft.Dropdown(
+        target_dropdown = FormField.create_dropdown(
             label="Assign To",
-            value=assignment.get('target_for', 'all'),
             options=[
                 ft.dropdown.Option("all", "All Students"),
                 ft.dropdown.Option("bridging", "Bridging Only"),
@@ -719,6 +572,7 @@ class AssignmentManager:
             ],
             width=150
         )
+        target_dropdown.value = assignment.get('target_for', 'all')
         
         def save(e):
             assignment['title'] = title_field.value
@@ -729,8 +583,7 @@ class AssignmentManager:
             
             if current_attachment['path'] and self.todo.drive_service and self.todo.data_manager.lms_root_id:
                 try:
-                    self.todo.show_snackbar("Uploading new attachment...", ft.Colors.BLUE)
-                    self.todo.page.update()
+                    self.dialog_mgr.show_snackbar("Uploading new attachment...", ft.Colors.BLUE)
                     
                     result = self.todo.storage_manager.upload_assignment_attachment(
                         current_attachment['path'],
@@ -743,14 +596,14 @@ class AssignmentManager:
                         assignment['attachment'] = current_attachment['name']
                         assignment['attachment_file_id'] = result.get('id')
                         assignment['attachment_file_link'] = result.get('webViewLink')
-                        self.todo.show_snackbar("Attachment uploaded!", ft.Colors.GREEN)
+                        self.dialog_mgr.show_snackbar("Attachment uploaded!", ft.Colors.GREEN)
                 except Exception as ex:
-                    self.todo.show_snackbar(f"Attachment upload error: {str(ex)}", ft.Colors.ORANGE)
+                    self.dialog_mgr.show_snackbar(f"Attachment upload error: {str(ex)}", ft.Colors.ORANGE)
             
             self.todo.data_manager.save_assignments(self.todo.assignments)
             close_overlay(e)
             self.todo.display_assignments()
-            self.todo.show_snackbar("Assignment updated", ft.Colors.BLUE)
+            self.dialog_mgr.show_snackbar("Assignment updated", ft.Colors.BLUE)
         
         content = ft.Column([
             title_field,
@@ -767,30 +620,33 @@ class AssignmentManager:
             ], alignment=ft.MainAxisAlignment.END)
         ], spacing=10)
         
-        overlay, close_overlay = self.todo.show_overlay(content, "Edit Assignment", width=400)
+        overlay, close_overlay = self.dialog_mgr.show_overlay(content, "Edit Assignment", width=400)
+    
+    def _handle_file_picked(self, e, attachment_dict, display_widget):
+        if e.files:
+            attachment_dict['path'] = e.files[0].path
+            attachment_dict['name'] = e.files[0].name
+            display_widget.value = f"New: {e.files[0].name}"
+            self.todo.page.update()
     
     def delete_assignment(self, assignment):
-        def confirm(e):
+        def confirm():
             self.todo.assignments = [a for a in self.todo.assignments if a['id'] != assignment['id']]
             self.todo.submissions = [s for s in self.todo.submissions 
                                      if s['assignment_id'] != assignment['id']]
             self.todo.data_manager.save_assignments(self.todo.assignments)
             self.todo.data_manager.save_submissions(self.todo.submissions)
-            close_overlay(e)
             self.todo.display_assignments()
-            self.todo.show_snackbar("Assignment deleted", ft.Colors.ORANGE)
+            self.dialog_mgr.show_snackbar("Assignment deleted", ft.Colors.ORANGE)
         
-        content = ft.Column([
-            ft.Text(f"Delete '{assignment['title']}'?"),
-            ft.Text("This will also delete all submissions.", size=12, color=ft.Colors.GREY_600),
-            ft.Container(height=10),
-            ft.Row([
-                ft.TextButton("Cancel", on_click=lambda e: close_overlay(e)),
-                ft.ElevatedButton("Delete", on_click=confirm, bgcolor=ft.Colors.RED, color=ft.Colors.WHITE)
-            ], alignment=ft.MainAxisAlignment.END)
-        ], tight=True, spacing=10)
-        
-        overlay, close_overlay = self.todo.show_overlay(content, "Confirm Delete", width=350)
+        self.dialog_mgr.show_confirmation(
+            "Confirm Delete",
+            f"Delete '{assignment['title']}'?\nThis will also delete all submissions.",
+            confirm,
+            "Delete",
+            "Cancel",
+            ft.Colors.RED
+        )
     
     def show_notifications_dialog(self):
         if not self.todo.notification_service:
@@ -827,7 +683,7 @@ class AssignmentManager:
         
         def mark_all_read(e):
             self.todo.notification_service.mark_all_as_read(self.todo.current_student_email)
-            self.todo.show_snackbar("All notifications marked as read", ft.Colors.BLUE)
+            self.dialog_mgr.show_snackbar("All notifications marked as read", ft.Colors.BLUE)
             close_overlay(e)
             self.todo.display_assignments()
         
@@ -839,4 +695,4 @@ class AssignmentManager:
             ], alignment=ft.MainAxisAlignment.END)
         ])
         
-        overlay, close_overlay = self.todo.show_overlay(content, "Notifications", width=450)
+        overlay, close_overlay = self.dialog_mgr.show_overlay(content, "Notifications", width=450)

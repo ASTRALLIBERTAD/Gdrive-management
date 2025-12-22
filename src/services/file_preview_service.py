@@ -3,6 +3,7 @@ import base64
 import mimetypes
 import io
 from googleapiclient.http import MediaIoBaseDownload
+from utils.common import show_snackbar, open_drive_file
 
 
 class FilePreviewService:
@@ -368,16 +369,10 @@ class FilePreviewService:
     
     def _open_in_browser(self, file_id):
         if file_id:
-            import webbrowser
-            webbrowser.open(f"https://drive.google.com/file/d/{file_id}/view")
+            open_drive_file(file_id)
     
     def _show_snackbar(self, message, color):
-        self.page.snack_bar = ft.SnackBar(
-            content=ft.Text(message),
-            bgcolor=color
-        )
-        self.page.snack_bar.open = True
-        self.page.update()
+        show_snackbar(self.page, message, color)
     
     def close_preview(self):
         if self.current_overlay and self.current_overlay in self.page.overlay:

@@ -1,112 +1,133 @@
 import flet as ft
 import json
 import os
+from utils.ui_components import DialogManager, FormField
+from utils.advanced_ui import ProgressIndicator, EmptyStateBuilder
+from utils.common import show_snackbar
+
+
+class NotificationHelper:
+    def __init__(self, page):
+        self.page = page
+    
+    def success(self, message):
+        show_snackbar(self.page, message, ft.Colors.GREEN)
+    
+    def error(self, message):
+        show_snackbar(self.page, message, ft.Colors.RED)
+    
+    def warning(self, message):
+        show_snackbar(self.page, message, ft.Colors.ORANGE)
+
+
+class FolderHelper:
+    def __init__(self, drive_service):
+        self.drive_service = drive_service
+    
+    def get_or_create_folder(self, parent_id, folder_name):
+        if not self.drive_service:
+            return None
+        try:
+            results = self.drive_service.list_files(folder_id=parent_id)
+            files = results.get('files', []) if results else []
+            for f in files:
+                if f.get('name') == folder_name and f.get('mimeType') == 'application/vnd.google-apps.folder':
+                    return f
+            return self.drive_service.create_folder(folder_name, parent_id=parent_id)
+        except:
+            return None
+
+
+class UploadHelper:
+    def __init__(self, drive_service):
+        self.drive_service = drive_service
+    
+    def upload_with_path(self, file_path, root_id, folder_path, file_name):
+        if not self.drive_service:
+            return None
+        current_id = root_id
+        folder_helper = FolderHelper(self.drive_service)
+        for folder_name in folder_path:
+            folder = folder_helper.get_or_create_folder(current_id, folder_name)
+            if folder:
+                current_id = folder.get('id', current_id)
+        return self.drive_service.upload_file(file_path, parent_id=current_id)
+    
+    def upload_with_metadata(self, file_path, parent_id, student_name, file_name):
+        if not self.drive_service:
+            return None
+        return self.drive_service.upload_file(file_path, parent_id=parent_id)
+
+
+class ConfigHelper:
+    @staticmethod
+    def set_value(filename, key, value):
+        data = {}
+        if os.path.exists(filename):
+            try:
+                with open(filename, 'r') as f:
+                    data = json.load(f)
+            except:
+                pass
+        data[key] = value
+        with open(filename, 'w') as f:
+            json.dump(data, f, indent=2)
 
 
 class StorageManager:
     def __init__(self, todo_view, drive_service):
         self.todo = todo_view
         self.drive_service = drive_service
-        self.subject_folders_cache = {}
+        self.folder_hierarchy_mgr = FolderHelper(drive_service) if drive_service else None
+        self.upload_mgr = UploadHelper(drive_service) if drive_service else None
+        self.dialog_mgr = DialogManager(todo_view.page)
+        self.notif_mgr = NotificationHelper(todo_view.page)
     
     def get_or_create_subject_folder_in_lms(self, subject):
-        if not self.drive_service or not self.todo.data_manager.lms_root_id:
+        if not self.folder_hierarchy_mgr or not self.todo.data_manager.lms_root_id:
             return None
         
-        cache_key = f"lms_{subject}"
-        if cache_key in self.subject_folders_cache:
-            folder_id = self.subject_folders_cache[cache_key]
-            try:
-                info = self.drive_service.get_file_info(folder_id)
-                if info:
-                    return folder_id
-            except:
-                pass
-        
-        lms_root = self.todo.data_manager.lms_root_id
-        
-        try:
-            result = self.drive_service.list_files(folder_id=lms_root, use_cache=False)
-            files = result.get('files', []) if result else []
-            
-            for f in files:
-                if f.get('name') == subject and f.get('mimeType') == 'application/vnd.google-apps.folder':
-                    self.subject_folders_cache[cache_key] = f['id']
-                    return f['id']
-            
-            new_folder = self.drive_service.create_folder(subject, parent_id=lms_root)
-            if new_folder:
-                self.subject_folders_cache[cache_key] = new_folder['id']
-                return new_folder['id']
-        except Exception as e:
-            print(f"Error creating subject folder in LMS: {e}")
-        
-        return None
+        return self.folder_hierarchy_mgr.get_or_create_folder(
+            self.todo.data_manager.lms_root_id,
+            subject
+        )
     
     def upload_assignment_attachment(self, file_path, file_name, subject, assignment_id):
-        if not self.drive_service or not self.todo.data_manager.lms_root_id:
-            return None
-        
-        subject_folder_id = self.get_or_create_subject_folder_in_lms(subject)
-        if not subject_folder_id:
+        if not self.upload_mgr or not self.todo.data_manager.lms_root_id:
             return None
         
         try:
-            attachments_folder_id = self._get_or_create_attachments_folder_in_lms(subject_folder_id)
-            if not attachments_folder_id:
-                return None
-            
+            folder_path = [subject, 'Attachments']
             prefixed_name = f"ATTACH_{assignment_id}_{file_name}"
             
-            result = self.drive_service.upload_file(
+            return self.upload_mgr.upload_with_path(
                 file_path,
-                parent_id=attachments_folder_id,
-                file_name=prefixed_name
+                self.todo.data_manager.lms_root_id,
+                folder_path,
+                prefixed_name
             )
-            
-            return result
         except Exception as e:
             print(f"Error uploading attachment: {e}")
             return None
     
-    def _get_or_create_attachments_folder_in_lms(self, subject_folder_id):
-        try:
-            result = self.drive_service.list_files(folder_id=subject_folder_id, use_cache=False)
-            files = result.get('files', []) if result else []
-            
-            for f in files:
-                if f.get('name') == 'Attachments' and f.get('mimeType') == 'application/vnd.google-apps.folder':
-                    return f['id']
-            
-            new_folder = self.drive_service.create_folder('Attachments', parent_id=subject_folder_id)
-            if new_folder:
-                return new_folder['id']
-        except Exception as e:
-            print(f"Error creating attachments folder: {e}")
-        
-        return None
-    
     def upload_submission_to_link_drive(self, file_path, file_name, subject, student_name, link_drive_id):
-        if not self.drive_service or not link_drive_id:
+        if not self.upload_mgr or not link_drive_id:
             return None
         
         try:
-            prefixed_name = f"{student_name}_{file_name}"
-            
-            result = self.drive_service.upload_file(
+            return self.upload_mgr.upload_with_metadata(
                 file_path,
-                parent_id=link_drive_id,
-                file_name=prefixed_name
+                link_drive_id,
+                student_name,
+                file_name
             )
-            
-            return result
         except Exception as e:
             print(f"Error uploading submission: {e}")
             return None
     
     def show_storage_settings(self):
         if not self.drive_service:
-            self.todo.show_snackbar("Drive service not available", ft.Colors.RED)
+            self.notif_mgr.error("Drive service not available")
             return
         
         current_folder_name = "Not Set (Using Local Storage)"
@@ -132,40 +153,29 @@ class StorageManager:
             ft.Text(f"Current LMS Data Folder: {current_folder_name}", weight=ft.FontWeight.BOLD),
             ft.Text("Select a shared folder where all students and teachers have access."),
             ft.Divider(),
-            ft.ElevatedButton("Select/Change Drive Folder", on_click=select_drive),
-            ft.ElevatedButton("Unlink (Use Local)", on_click=unlink_drive, color=ft.Colors.RED)
+            ft.ElevatedButton("Select/Change Drive Folder", on_click=select_drive, icon=ft.Icons.FOLDER),
+            ft.ElevatedButton("Unlink (Use Local)", on_click=unlink_drive, color=ft.Colors.RED, icon=ft.Icons.LINK_OFF)
         ], tight=True)
         
-        overlay, close_overlay = self.todo.show_overlay(content, "Storage Settings")
+        overlay, close_overlay = self.dialog_mgr.show_overlay(content, "Storage Settings")
     
     def _unlink_drive_folder(self):
-        config_file = "lms_config.json"
-        config = {}
-        
-        if os.path.exists(config_file):
-            try:
-                with open(config_file, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-            except:
-                pass
-        
-        config["lms_root_id"] = None
-        
-        with open(config_file, "w", encoding="utf-8") as f:
-            json.dump(config, f, indent=2)
+        ConfigHelper.set_value("lms_config.json", "lms_root_id", None)
         
         self.todo.data_manager.lms_root_id = None
-        self.todo.show_snackbar("Unlinked Drive folder. Using local storage.", ft.Colors.ORANGE)
+        self.notif_mgr.warning("Unlinked Drive folder. Using local storage.")
         
         self.todo.students = self.todo.data_manager.load_students()
         self.todo.student_manager.update_student_dropdown()
         self.todo.display_assignments()
     
     def select_drive_folder_dialog(self):
+        from utils.validators import StringUtils
+        
         try:
             folders = self.drive_service.list_files(folder_id='root', use_cache=False)
         except Exception as e:
-            self.todo.show_snackbar(f"Error listing folders: {e}", ft.Colors.RED)
+            self.notif_mgr.error(f"Error listing folders: {e}")
             return
         
         folder_list = folders.get('files', []) if folders else []
@@ -179,20 +189,31 @@ class StorageManager:
         
         def update_list(items):
             list_view.controls.clear()
-            for f in items:
+            
+            if not items:
                 list_view.controls.append(
-                    ft.ListTile(
-                        leading=ft.Icon(ft.Icons.FOLDER),
-                        title=ft.Text(f['name']),
-                        on_click=lambda e, folder=f: on_select(folder)
+                    EmptyStateBuilder.create(
+                        ft.Icons.FOLDER_OFF,
+                        "No folders found",
+                        "Try searching for a different name"
                     )
                 )
+            else:
+                for f in items:
+                    list_view.controls.append(
+                        ft.ListTile(
+                            leading=ft.Icon(ft.Icons.FOLDER, color=ft.Colors.BLUE),
+                            title=ft.Text(f['name']),
+                            on_click=lambda e, folder=f: on_select(folder)
+                        )
+                    )
+            
             if list_view.page:
                 list_view.update()
         
         def on_select(folder):
             self._save_lms_root(folder['id'])
-            self.todo.show_snackbar(f"Linked to '{folder['name']}'", ft.Colors.GREEN)
+            self.notif_mgr.success(f"Linked to '{folder['name']}'")
             close_overlay(None)
             
             self.todo.assignments = self.todo.data_manager.load_assignments()
@@ -205,27 +226,10 @@ class StorageManager:
             if not link:
                 return
             
-            file_id = None
-            
-            if "/folders/" in link:
-                try:
-                    parts = link.split("/folders/")
-                    if len(parts) > 1:
-                        file_id = parts[1].split('?')[0].split('/')[0]
-                except:
-                    pass
-            elif "id=" in link:
-                try:
-                    parts = link.split("id=")
-                    if len(parts) > 1:
-                        file_id = parts[1].split('&')[0]
-                except:
-                    pass
-            elif len(link) > 20 and "/" not in link:
-                file_id = link
+            file_id = StringUtils.extract_id_from_url(link)
             
             if not file_id:
-                self.todo.show_snackbar("Could not extract ID from link", ft.Colors.RED)
+                self.notif_mgr.error("Could not extract ID from link")
                 return
             
             try:
@@ -233,20 +237,22 @@ class StorageManager:
                 if info and info.get('mimeType') == 'application/vnd.google-apps.folder':
                     on_select({'id': file_id, 'name': info.get('name', 'Unknown')})
                 else:
-                    self.todo.show_snackbar("ID is not a valid folder or access denied", ft.Colors.RED)
+                    self.notif_mgr.error("ID is not a valid folder or access denied")
             except Exception as ex:
-                self.todo.show_snackbar(f"Error checking Link: {ex}", ft.Colors.RED)
+                self.notif_mgr.error(f"Error checking Link: {ex}")
         
-        search_field = ft.TextField(
+        search_field = FormField.create_text_field(
             hint_text="Search folders...",
-            on_submit=lambda e: perform_search(e.control.value)
+            expand=True
         )
-        link_field = ft.TextField(
+        search_field.on_submit = lambda e: perform_search(e.control.value)
+        
+        link_field = FormField.create_text_field(
             hint_text="Paste Drive Link or Folder ID",
-            expand=True,
-            text_size=12,
-            on_submit=process_link
+            expand=True
         )
+        link_field.on_submit = process_link
+        
         link_btn = ft.IconButton(icon=ft.Icons.ARROW_FORWARD, on_click=process_link, tooltip="Use Link")
         
         content = ft.Column([
@@ -258,27 +264,15 @@ class StorageManager:
         
         update_list(folder_list)
         
-        overlay, close_overlay = self.todo.show_overlay(content, "Select Drive Folder", width=500)
+        overlay, close_overlay = self.dialog_mgr.show_overlay(content, "Select Drive Folder", width=500)
     
     def _save_lms_root(self, folder_id):
-        config_file = "lms_config.json"
-        config = {}
-        
-        if os.path.exists(config_file):
-            try:
-                with open(config_file, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-            except:
-                pass
-        
-        config["lms_root_id"] = folder_id
-        
-        with open(config_file, "w", encoding="utf-8") as f:
-            json.dump(config, f, indent=2)
-        
+        ConfigHelper.set_value("lms_config.json", "lms_root_id", folder_id)
         self.todo.data_manager.lms_root_id = folder_id
     
     def create_browse_dialog(self, initial_parent_id, on_select):
+        from utils.advanced_ui import NavigationBar
+        
         current_folder = {'id': initial_parent_id, 'name': 'Root'}
         if initial_parent_id == 'root':
             current_folder['name'] = 'My Drive'
@@ -295,6 +289,10 @@ class StorageManager:
         loading_indicator = ft.ProgressBar(width=None, visible=False)
         
         def load_folder(folder_id, initial=False):
+            ProgressIndicator.show_in_container(
+                ft.Container(content=file_list),
+                "Loading folders..."
+            )
             loading_indicator.visible = True
             file_list.controls.clear()
             self.todo.page.update()
@@ -331,19 +329,24 @@ class StorageManager:
                         )
                     )
                 
-                for f in folders:
+                if not folders:
                     file_list.controls.append(
-                        ft.ListTile(
-                            leading=ft.Icon(ft.Icons.FOLDER),
-                            title=ft.Text(f['name']),
-                            subtitle=ft.Text("Click to open"),
-                            on_click=lambda e, fid=f['id'], fname=f['name']: enter_folder(fid, fname),
-                            trailing=ft.IconButton(ft.Icons.CHECK, on_click=lambda e, fid=f['id']: confirm_selection(fid))
+                        EmptyStateBuilder.create(
+                            ft.Icons.FOLDER_OFF,
+                            "No subfolders found"
                         )
                     )
-                
-                if not folders:
-                    file_list.controls.append(ft.Text("No subfolders found."))
+                else:
+                    for f in folders:
+                        file_list.controls.append(
+                            ft.ListTile(
+                                leading=ft.Icon(ft.Icons.FOLDER, color=ft.Colors.BLUE),
+                                title=ft.Text(f['name']),
+                                subtitle=ft.Text("Click to open"),
+                                on_click=lambda e, fid=f['id'], fname=f['name']: enter_folder(fid, fname),
+                                trailing=ft.IconButton(ft.Icons.CHECK, on_click=lambda e, fid=f['id']: confirm_selection(fid))
+                            )
+                        )
                     
             except Exception as e:
                 file_list.controls.append(ft.Text(f"Error: {e}", color=ft.Colors.RED))
@@ -372,14 +375,17 @@ class StorageManager:
             ft.Divider(),
             ft.Row([
                 ft.TextButton("Cancel", on_click=lambda e: close_func(None)),
-                ft.ElevatedButton("Select Current Folder", 
-                                 on_click=lambda e: confirm_selection(current_folder['id']))
+                ft.ElevatedButton(
+                    "Select Current Folder", 
+                    on_click=lambda e: confirm_selection(current_folder['id']),
+                    icon=ft.Icons.CHECK
+                )
             ], alignment=ft.MainAxisAlignment.END)
         ])
         
         load_folder(initial_parent_id, initial=True)
         
-        overlay, close_func = self.todo.show_overlay(content, "Select Folder", width=400, height=500)
+        overlay, close_func = self.dialog_mgr.show_overlay(content, "Select Folder", width=400, height=500)
     
     def open_new_assignment_folder_picker(self, e):
         start_id = self.todo.selected_drive_folder_id or self.todo.data_manager.lms_root_id or 'root'

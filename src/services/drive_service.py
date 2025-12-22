@@ -1,82 +1,21 @@
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
-from datetime import datetime, timedelta
-from functools import lru_cache
-import time
 import io
-from utils.common import extract_drive_id, format_file_size
+from utils.base_service import BaseService
+from utils.drive_helpers import DriveQueryBuilder, DriveOperations, DriveRequestBuilder, DriveFileFields
+from utils.file_operations import FileOperations
 
 
-class DriveService:
+class DriveService(BaseService):
     
     def __init__(self, service, cache_ttl=300, max_retries=3):
+        super().__init__(cache_ttl, max_retries, retry_delay=1)
         self.service = service
-        self._cache = {}
-        self._cache_ttl = cache_ttl
-        self.max_retries = max_retries
-        self.retry_delay = 1
-        self._setup_lru_caches()
-    
-    def _setup_lru_caches(self):
-        @lru_cache(maxsize=128)
-        def cached_get_file_info(file_id):
-            return self.get_file_info(file_id, use_cache=False)
-        self._cached_get_file_info = cached_get_file_info
-    
-    def _get_cached(self, key):
-        if key in self._cache:
-            data, timestamp = self._cache[key]
-            if datetime.now() - timestamp < timedelta(seconds=self._cache_ttl):
-                return data
-            del self._cache[key]
-        return None
-    
-    def _set_cache(self, key, data):
-        self._cache[key] = (data, datetime.now())
-    
-    def _invalidate_cache(self, folder_id=None):
-        if folder_id:
-            keys_to_remove = [k for k in self._cache.keys() if folder_id in k]
-            for key in keys_to_remove:
-                del self._cache[key]
-            if hasattr(self, '_cached_get_file_info'):
-                try:
-                    self._cached_get_file_info.cache_clear()
-                except:
-                    pass
-        else:
-            self._cache.clear()
-            if hasattr(self, '_cached_get_file_info'):
-                self._cached_get_file_info.cache_clear()
-    
-    def _retry_request(self, request_func, operation_name="operation"):
-        for attempt in range(self.max_retries):
-            try:
-                return request_func()
-            except (TimeoutError, HttpError, Exception) as error:
-                should_retry = (
-                    isinstance(error, TimeoutError) or
-                    (isinstance(error, HttpError) and error.resp.status in [429, 500, 503]) or
-                    (not isinstance(error, HttpError) and attempt < self.max_retries - 1)
-                )
-                
-                if should_retry and attempt < self.max_retries - 1:
-                    delay = self.retry_delay * (2 ** attempt)
-                    print(f"Error on {operation_name} (attempt {attempt + 1}/{self.max_retries}), retrying in {delay}s...")
-                    time.sleep(delay)
-                else:
-                    print(f"Final error on {operation_name}: {error}")
-                    return None
-        return None
     
     def _execute_file_list_query(self, query, page_size=100, page_token=None, fields="nextPageToken, files(id, name, mimeType, modifiedTime, size, owners)", order_by="folder,name"):
         def make_request():
-            return self.service.files().list(
-                q=query,
-                pageSize=page_size,
-                pageToken=page_token,
-                fields=fields,
-                orderBy=order_by
+            return DriveRequestBuilder.list_request(
+                self.service, query, page_size, page_token, fields, order_by
             ).execute()
         
         return self._retry_request(make_request, f"list_query({query[:50]})")
@@ -90,7 +29,7 @@ class DriveService:
                 print(f"Cache hit for {cache_key}")
                 return cached
         
-        query = f"'{folder_id}' in parents and trashed=false"
+        query = DriveQueryBuilder().in_parents(folder_id).not_trashed().build()
         result = self._execute_file_list_query(query, page_size, page_token)
         
         if result is not None:
@@ -111,11 +50,15 @@ class DriveService:
             if cached:
                 return cached
         
-        query = f"name contains '{query_text}' and trashed=false"
+        query_builder = DriveQueryBuilder().name_contains(query_text).not_trashed()
         if folder_id:
-            query += f" and '{folder_id}' in parents"
+            query_builder.in_parents(folder_id)
         
-        result = self._execute_file_list_query(query, page_size=50, fields="files(id, name, mimeType, modifiedTime, parents)")
+        result = self._execute_file_list_query(
+            query_builder.build(), 
+            page_size=50, 
+            fields="files(id, name, mimeType, modifiedTime, parents)"
+        )
         files = result.get('files', []) if result else []
         
         if use_cache and files:
@@ -124,12 +67,6 @@ class DriveService:
         return files
     
     def get_file_info(self, file_id, use_cache=True):
-        if use_cache and hasattr(self, '_cached_get_file_info'):
-            try:
-                return self._cached_get_file_info(file_id)
-            except:
-                pass
-        
         cache_key = f"fileinfo_{file_id}"
         
         if use_cache:
@@ -138,10 +75,7 @@ class DriveService:
                 return cached
         
         def make_request():
-            return self.service.files().get(
-                fileId=file_id,
-                fields="id, name, mimeType, size, createdTime, modifiedTime, owners, parents, webViewLink"
-            ).execute()
+            return DriveRequestBuilder.get_request(self.service, file_id).execute()
         
         file = self._retry_request(make_request, f"get_file_info({file_id})")
         
@@ -151,7 +85,8 @@ class DriveService:
         return file
 
     def resolve_drive_link(self, link):
-        file_id = extract_drive_id(link)
+        from utils.validators import StringUtils
+        file_id = StringUtils.extract_id_from_url(link)
         
         if not file_id:
             print(f"Could not extract file ID from link: {link}")
@@ -175,14 +110,8 @@ class DriveService:
     
     def create_folder(self, folder_name, parent_id='root'):
         def make_request():
-            file_metadata = {
-                'name': folder_name,
-                'mimeType': 'application/vnd.google-apps.folder',
-                'parents': [parent_id]
-            }
-            return self.service.files().create(
-                body=file_metadata,
-                fields='id, name'
+            return DriveRequestBuilder.create_folder_request(
+                self.service, folder_name, parent_id
             ).execute()
         
         return self._execute_file_mutation(f"create_folder({folder_name})", make_request, parent_id)
@@ -256,22 +185,11 @@ class DriveService:
             return None
 
     def find_file(self, name, parent_id):
-        query = f"name = '{name}' and '{parent_id}' in parents and trashed=false"
-        results = self.service.files().list(
-            q=query,
-            pageSize=1,
-            fields="files(id, name, mimeType, modifiedTime)"
-        ).execute()
-        files = results.get('files', [])
-        return files[0] if files else None
+        return DriveOperations.find_by_name(self.service, name, parent_id)
 
     def move_file(self, file_id, new_parent_id):
         def make_request():
-            file = self.service.files().get(
-                fileId=file_id,
-                fields='parents'
-            ).execute()
-            
+            file = self.service.files().get(fileId=file_id, fields='parents').execute()
             previous_parents = ",".join(file.get('parents', []))
             
             return self.service.files().update(
@@ -331,9 +249,7 @@ class DriveService:
         if current_depth >= max_depth:
             return None
         
-        query = f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
-        result = self._execute_file_list_query(query, page_size=100, fields="files(id, name)", order_by="name")
-        folders = result.get('files', []) if result else []
+        folders = DriveOperations.list_folders_only(self.service, folder_id)
         
         for folder in folders:
             folder['children'] = self.get_folder_tree(

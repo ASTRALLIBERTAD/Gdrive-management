@@ -1,5 +1,7 @@
 import flet as ft
 import datetime
+from utils.validators import Validator
+from utils.service_patterns import ListItemBuilder
 
 
 class StudentManager:
@@ -31,17 +33,8 @@ class StudentManager:
         def refresh_list():
             students_list.controls.clear()
             for student in self.todo.students:
-                bridging_badge = "[B] " if student.get('is_bridging', False) else ""
                 students_list.controls.append(
-                    ft.Row([
-                        ft.Text(f"{bridging_badge}{student['name']} ({student['email']})", expand=True),
-                        ft.IconButton(
-                            icon=ft.Icons.DELETE,
-                            icon_color=ft.Colors.RED,
-                            on_click=lambda e, s=student: remove_student(s),
-                            tooltip="Remove student"
-                        )
-                    ])
+                    ListItemBuilder.create_student_item(student, on_remove=remove_student)
                 )
             self.todo.page.update()
         
@@ -174,11 +167,9 @@ class StudentManager:
         overlay, close_overlay = self.todo.show_overlay(content, "Student Registration", width=420)
     
     def _validate_email(self, email):
-        if not email:
-            return False, "Email is required"
-        
-        if "@" not in email or "." not in email:
-            return False, "Invalid email format"
+        is_valid, msg = Validator.validate_email(email)
+        if not is_valid:
+            return False, msg
         
         for s in self.todo.students:
             if s['email'] == email:
