@@ -1,6 +1,8 @@
 import flet as ft
 import datetime
 
+from utils.common import show_snackbar
+
 
 class StudentManager:
     
@@ -62,14 +64,14 @@ class StudentManager:
                     bridging_checkbox.value = False
                     refresh_list()
                     self.update_student_dropdown()
-                    self.todo.show_snackbar("Student added", ft.Colors.GREEN)
+                    show_snackbar(self.todo.page, "Student added", ft.Colors.GREEN)
         
         def remove_student(student):
             self.todo.students.remove(student)
             self.todo.data_manager.save_students(self.todo.students)
             refresh_list()
             self.update_student_dropdown()
-            self.todo.show_snackbar("Student removed", ft.Colors.ORANGE)
+            show_snackbar(self.todo.page, "Student removed", ft.Colors.ORANGE)
         
         refresh_list()
         
@@ -146,7 +148,7 @@ class StudentManager:
             self.todo.current_student_email = email
             
             self.todo.display_assignments()
-            self.todo.show_snackbar(f"Welcome, {name}! Registered as {student_type}.", ft.Colors.GREEN)
+            show_snackbar(self.todo.page, f"Welcome, {name}! Registered as {student_type}.", ft.Colors.GREEN)
         
         content = ft.Column([
             ft.Text("Register to access assignments and submit your work.", size=14),

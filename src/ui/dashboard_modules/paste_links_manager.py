@@ -2,6 +2,8 @@ import flet as ft
 import json
 import os
 
+from utils.common import show_snackbar
+
 SAVED_LINKS_FILE = "saved_links.json"
 
 
@@ -68,8 +70,8 @@ class PasteLinksManager:
                 if info:
                     self.dash.file_manager.show_file_info(info)
                 else:
-                    self.dash.page.snack_bar = ft.SnackBar(ft.Text("Failed to open saved link"), open=True)
-                    self.dash.page.update()
+                    show_snackbar(self.dash.page, ft.Text("Failed to open saved link"), ft.Colors.RED)
+
     
     def load_paste_links_view(self):
         self.dash.current_view = "paste_links"
@@ -132,12 +134,8 @@ class PasteLinksManager:
             print("DEBUG: Empty link")
             return
         
-        loading_snack = ft.SnackBar(
-            content=ft.Text("Loading Drive link..."),
-            open=True
-        )
-        self.dash.page.snack_bar = loading_snack
-        self.dash.page.update()
+        show_snackbar(self.dash.page, "Loading Drive link...", ft.Colors.BLUE)
+        
 
         try:
             file_id, info = self.dash.drive.resolve_drive_link(link)
@@ -145,13 +143,7 @@ class PasteLinksManager:
             print(f"DEBUG: file_id={file_id}, info={info}")
 
             if not file_id or not info:
-                error_snack = ft.SnackBar(
-                    content=ft.Text("Invalid or inaccessible Drive link"),
-                    bgcolor=ft.Colors.RED_400,
-                    open=True
-                )
-                self.dash.page.snack_bar = error_snack
-                self.dash.page.update()
+                show_snackbar(self.dash.page, "Invalid or inaccessible Drive link", ft.Colors.RED)
                 return
 
             mime_type = info.get("mimeType", "")
@@ -162,51 +154,28 @@ class PasteLinksManager:
             try:
                 saved_added = self.add_saved_link(file_id, info, link)
                 if saved_added:
-                    self.dash.page.snack_bar = ft.SnackBar(ft.Text("Saved link"), open=True)
+                    show_snackbar(self.dash.page, "Link saved", ft.Colors.GREEN)
                 else:
-                    self.dash.page.snack_bar = ft.SnackBar(ft.Text("Link already saved"), open=True)
+                    show_snackbar(self.dash.page, "Link already saved", ft.Colors.ORANGE)
             except Exception as ex:
                 print(f"ERROR: Failed to save link: {ex}")
 
             if mime_type == "application/vnd.google-apps.folder":
-                success_snack = ft.SnackBar(
-                    content=ft.Text(f"Opening folder: {name}"),
-                    bgcolor=ft.Colors.GREEN_400,
-                    open=True
-                )
-                self.dash.page.snack_bar = success_snack
-                self.dash.page.update()
+                show_snackbar(self.dash.page, f"Opening folder: {name}", ft.Colors.GREEN)
                 self.dash.folder_navigator.show_folder_contents(file_id, name)
             else:
                 if self.file_preview:
-                    info_snack = ft.SnackBar(
-                        content=ft.Text(f"Opening preview: {name}"),
-                        bgcolor=ft.Colors.BLUE_400,
-                        open=True
-                    )
-                    self.dash.page.snack_bar = info_snack
-                    self.dash.page.update()
+                    show_snackbar(self.dash.page, f"Opening preview: {name}", ft.Colors.GREEN)
                     self.file_preview.show_preview(file_id=file_id, file_name=name)
                 else:
-                    info_snack = ft.SnackBar(
-                        content=ft.Text(f"File detected: {name}"),
-                        bgcolor=ft.Colors.BLUE_400,
-                        open=True
-                    )
-                    self.dash.page.snack_bar = info_snack
-                    self.dash.page.update()
+                    show_snackbar(self.dash.page, f"Opening file info: {name}", ft.Colors.GREEN)
                     self.dash.file_manager.show_file_info(info)
 
             self.dash.paste_link_field.value = ""
 
         except Exception as ex:
             print(f"ERROR: Exception in handle_paste_link: {ex}")
-            error_snack = ft.SnackBar(
-                content=ft.Text(f"Error: {str(ex)}"),
-                bgcolor=ft.Colors.RED_400,
-                open=True
-            )
-            self.dash.page.snack_bar = error_snack
+            show_snackbar(self.dash.page, f"Error processing link: {ex}", ft.Colors.RED)
 
         if self.dash.current_view == "paste_links":
             self.load_paste_links_view()

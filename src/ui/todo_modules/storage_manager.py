@@ -2,6 +2,8 @@ import flet as ft
 import json
 import os
 
+from utils.common import show_snackbar
+
 
 class StorageManager:
     def __init__(self, todo_view, drive_service):
@@ -106,7 +108,7 @@ class StorageManager:
     
     def show_storage_settings(self):
         if not self.drive_service:
-            self.todo.show_snackbar("Drive service not available", ft.Colors.RED)
+            show_snackbar(self.todo.page, "Drive service not available", ft.Colors.RED)
             return
         
         current_folder_name = "Not Set (Using Local Storage)"
@@ -155,7 +157,7 @@ class StorageManager:
             json.dump(config, f, indent=2)
         
         self.todo.data_manager.lms_root_id = None
-        self.todo.show_snackbar("Unlinked Drive folder. Using local storage.", ft.Colors.ORANGE)
+        show_snackbar(self.todo.page, "Unlinked Drive folder. Using local storage.", ft.Colors.ORANGE)
         
         self.todo.students = self.todo.data_manager.load_students()
         self.todo.student_manager.update_student_dropdown()
@@ -165,7 +167,7 @@ class StorageManager:
         try:
             folders = self.drive_service.list_files(folder_id='root', use_cache=False)
         except Exception as e:
-            self.todo.show_snackbar(f"Error listing folders: {e}", ft.Colors.RED)
+            show_snackbar(self.todo.page, f"Error listing folders: {e}", ft.Colors.RED)
             return
         
         folder_list = folders.get('files', []) if folders else []
@@ -192,7 +194,7 @@ class StorageManager:
         
         def on_select(folder):
             self._save_lms_root(folder['id'])
-            self.todo.show_snackbar(f"Linked to '{folder['name']}'", ft.Colors.GREEN)
+            show_snackbar(self.todo.page, f"Linked to '{folder['name']}'", ft.Colors.GREEN)
             close_overlay(None)
             
             self.todo.assignments = self.todo.data_manager.load_assignments()
@@ -225,7 +227,7 @@ class StorageManager:
                 file_id = link
             
             if not file_id:
-                self.todo.show_snackbar("Could not extract ID from link", ft.Colors.RED)
+                show_snackbar(self.todo.page, "Could not extract ID from link", ft.Colors.RED)
                 return
             
             try:
@@ -233,9 +235,9 @@ class StorageManager:
                 if info and info.get('mimeType') == 'application/vnd.google-apps.folder':
                     on_select({'id': file_id, 'name': info.get('name', 'Unknown')})
                 else:
-                    self.todo.show_snackbar("ID is not a valid folder or access denied", ft.Colors.RED)
+                    show_snackbar(self.todo.page, "ID is not a valid folder or access denied", ft.Colors.RED)
             except Exception as ex:
-                self.todo.show_snackbar(f"Error checking Link: {ex}", ft.Colors.RED)
+                show_snackbar(self.todo.page, f"Error checking Link: {ex}", ft.Colors.RED)
         
         search_field = ft.TextField(
             hint_text="Search folders...",

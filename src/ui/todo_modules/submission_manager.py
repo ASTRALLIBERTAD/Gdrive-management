@@ -1,6 +1,6 @@
 import flet as ft
 import datetime
-from utils.common import open_drive_file, open_url
+from utils.common import open_drive_file, open_url, show_snackbar
 
 
 class SubmissionManager:
@@ -61,11 +61,11 @@ class SubmissionManager:
         drive_folder_id = assignment.get('drive_folder_id')
         
         if not self.todo.drive_service:
-            self.todo.show_snackbar("No Drive service available", ft.Colors.RED)
+            show_snackbar(self.todo.page, "No Drive service available", ft.Colors.RED)
             return
         
         if not drive_folder_id:
-            self.todo.show_snackbar("No submission folder linked to this assignment", ft.Colors.RED)
+            show_snackbar(self.todo.page, "No submission folder linked to this assignment", ft.Colors.RED)
             return
         
         selected_folder_id = [drive_folder_id]
@@ -129,7 +129,7 @@ class SubmissionManager:
                 
                 if result:
                     upload_status.value = f"✓ Uploaded to link drive"
-                    self.todo.show_snackbar(f"File uploaded to link drive folder!", ft.Colors.GREEN)
+                    show_snackbar(self.todo.page, f"File uploaded to link drive folder!", ft.Colors.GREEN)
                     
                     existing = self.get_submission_status(assignment['id'], self.todo.current_student_email)
                     submitted_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -168,10 +168,10 @@ class SubmissionManager:
                     close_overlay(None)
                 else:
                     upload_status.value = "✗ Upload failed"
-                    self.todo.show_snackbar("Upload failed", ft.Colors.RED)
+                    show_snackbar(self.todo.page, "Upload failed", ft.Colors.RED)
             except Exception as ex:
                 upload_status.value = f"✗ Error: {str(ex)}"
-                self.todo.show_snackbar(f"Error: {str(ex)}", ft.Colors.RED)
+                show_snackbar(self.todo.page, f"Error: {str(ex)}", ft.Colors.RED)
             
             self.todo.page.update()
         
@@ -333,7 +333,7 @@ class SubmissionManager:
                                 
                                 self.todo.data_manager.save_submissions(self.todo.submissions)
                                 
-                                self.todo.show_snackbar(f"✓ Grade saved for {student_name_ref}", ft.Colors.GREEN)
+                                show_snackbar(self.todo.page, f"✓ Grade saved for {student_name_ref}", ft.Colors.GREEN)
                                 
                                 close_fn(None)
                                 self.view_submissions_dialog(assignment)
@@ -343,7 +343,7 @@ class SubmissionManager:
                                 save_status.color = ft.Colors.RED
                                 e.control.text = "Save Grade"
                                 e.control.disabled = False
-                                self.todo.show_snackbar(f"✗ Failed to save: {str(ex)}", ft.Colors.RED)
+                                show_snackbar(self.todo.page, f"✗ Failed to save: {str(ex)}", ft.Colors.RED)
                             
                             self.todo.page.update()
                         

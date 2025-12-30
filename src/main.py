@@ -133,11 +133,11 @@ def main(page: ft.Page):
         
         def handle_on_login(e):
             if e.error:
-                show_snackbar(f"Login Error: {e.error}", ft.Colors.RED)
+                show_snackbar(page, f"Login Error: {e.error}", ft.Colors.RED)
                 return
             
             if not hasattr(page.auth, 'token') or not page.auth.token:
-                show_snackbar("Authentication failed: No token received", ft.Colors.RED)
+                show_snackbar(page, "Authentication failed: No token received", ft.Colors.RED)
                 return
             
             token_data = page.auth.token
@@ -154,7 +154,7 @@ def main(page: ft.Page):
                     account_manager.set_current_account(email)
                 show_dashboard()
             else:
-                show_snackbar("Authentication failed: Could not complete login", ft.Colors.RED)
+                show_snackbar(page, "Authentication failed: Could not complete login", ft.Colors.RED)
         
         page.on_login = handle_on_login
                 
@@ -190,7 +190,7 @@ def main(page: ft.Page):
             
             account_data = account_manager.get_account(email)
             if not account_data:
-                show_snackbar(f"Account {email} not found.", ft.Colors.RED)
+                show_snackbar(page, f"Account {email} not found.", ft.Colors.RED)
                 return
             
             token_data = account_data.get("token_data")
@@ -199,7 +199,7 @@ def main(page: ft.Page):
                     account_manager.set_current_account(email)
                     show_dashboard()
                 else:
-                    show_snackbar(f"Session expired for {email}. Please login again.", ft.Colors.ORANGE)
+                    show_snackbar(page, f"Session expired for {email}. Please login again.", ft.Colors.ORANGE)
                     if hasattr(page.auth, 'logout'):
                         page.auth.logout()
                     show_login(switching_to_email=email)
