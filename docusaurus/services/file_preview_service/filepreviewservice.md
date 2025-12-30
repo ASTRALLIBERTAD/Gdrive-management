@@ -9,7 +9,7 @@ title: "FilePreviewService"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`file_preview_service.py`](./file_preview_service.py) | **Line:** 22
+**File:** [`file_preview_service.py`](./file_preview_service.py) | **Line:** 23
 :::
 
 Service for generating and displaying file previews across multiple formats.

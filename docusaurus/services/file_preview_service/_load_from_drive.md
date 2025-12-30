@@ -9,7 +9,7 @@ title: "_load_from_drive"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`file_preview_service.py`](./file_preview_service.py) | **Line:** 414
+**File:** [`file_preview_service.py`](./file_preview_service.py) | **Line:** 415
 :::
 
 Fetch and load file content from Google Drive.

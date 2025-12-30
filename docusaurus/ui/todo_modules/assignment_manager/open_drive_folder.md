@@ -1,6 +1,6 @@
 ---
 id: "open_drive_folder"
-sidebar_position: 16
+sidebar_position: 15
 title: "open_drive_folder"
 ---
 
@@ -9,7 +9,7 @@ title: "open_drive_folder"
 ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 905
+**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 887
 :::
 
 Open a Google Drive folder in the system's default browser.

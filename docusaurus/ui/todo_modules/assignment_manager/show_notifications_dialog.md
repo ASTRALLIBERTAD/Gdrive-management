@@ -1,6 +1,6 @@
 ---
 id: "show_notifications_dialog"
-sidebar_position: 23
+sidebar_position: 19
 title: "show_notifications_dialog"
 ---
 
@@ -9,7 +9,7 @@ title: "show_notifications_dialog"
 ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-0%25-red)
 
 :::info Source
-**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 1164
+**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 1103
 :::
 
 Show a dialog listing recent notifications for the current student.

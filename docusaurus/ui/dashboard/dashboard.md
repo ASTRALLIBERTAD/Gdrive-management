@@ -9,7 +9,7 @@ title: "Dashboard"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`dashboard.py`](./dashboard.py) | **Line:** 26
+**File:** [`dashboard.py`](./dashboard.py) | **Line:** 27
 :::
 
 Main application dashboard with Google Drive integration and file management.

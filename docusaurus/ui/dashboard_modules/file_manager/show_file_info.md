@@ -9,7 +9,7 @@ title: "show_file_info"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`file_manager.py`](./file_manager.py) | **Line:** 1165
+**File:** [`file_manager.py`](./file_manager.py) | **Line:** 1166
 :::
 
 Display file metadata and actions in modal dialog.

@@ -9,7 +9,7 @@ title: "__init__"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`todo_view.py`](./todo_view.py) | **Line:** 269
+**File:** [`todo_view.py`](./todo_view.py) | **Line:** 268
 :::
 
 Initialize TodoView with page, navigation callback, and Drive service.

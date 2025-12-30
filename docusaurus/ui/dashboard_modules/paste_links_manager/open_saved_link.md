@@ -9,7 +9,7 @@ title: "open_saved_link"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`paste_links_manager.py`](./paste_links_manager.py) | **Line:** 635
+**File:** [`paste_links_manager.py`](./paste_links_manager.py) | **Line:** 637
 :::
 
 Open saved Drive link (navigate folder or preview file).

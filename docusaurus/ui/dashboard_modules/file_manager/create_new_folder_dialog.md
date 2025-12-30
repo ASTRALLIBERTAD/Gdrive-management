@@ -9,7 +9,7 @@ title: "create_new_folder_dialog"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`file_manager.py`](./file_manager.py) | **Line:** 1348
+**File:** [`file_manager.py`](./file_manager.py) | **Line:** 1349
 :::
 
 Display modal dialog for creating new folder in current directory.

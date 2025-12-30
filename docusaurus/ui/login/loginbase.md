@@ -9,7 +9,7 @@ title: "LoginBase"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`login.py`](./login.py) | **Line:** 20
+**File:** [`login.py`](./login.py) | **Line:** 22
 :::
 
 Abstract base class for login UI components with common authentication elements.

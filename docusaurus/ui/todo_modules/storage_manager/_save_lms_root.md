@@ -9,7 +9,7 @@ title: "_save_lms_root"
 ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 453
+**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 455
 :::
 
 Update and persist the LMS root folder ID in local config.

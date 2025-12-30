@@ -9,7 +9,7 @@ title: "calculate_submission_timing"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`submission_manager.py`](./submission_manager.py) | **Line:** 240
+**File:** [`submission_manager.py`](./submission_manager.py) | **Line:** 241
 :::
 
 Calculate whether a submission was early or late relative to deadline.

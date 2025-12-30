@@ -9,7 +9,7 @@ title: "create_folder_item"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`file_manager.py`](./file_manager.py) | **Line:** 353
+**File:** [`file_manager.py`](./file_manager.py) | **Line:** 348
 :::
 
 Create visual folder list item with icon, name, count, and menu.

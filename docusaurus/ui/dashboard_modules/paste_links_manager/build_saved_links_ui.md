@@ -9,7 +9,7 @@ title: "build_saved_links_ui"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`paste_links_manager.py`](./paste_links_manager.py) | **Line:** 1156
+**File:** [`paste_links_manager.py`](./paste_links_manager.py) | **Line:** 1125
 :::
 
 Construct UI for saved links list with clickable cards.

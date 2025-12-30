@@ -9,7 +9,7 @@ title: "_unlink_drive_folder"
 ![Completeness](https://img.shields.io/badge/Docs-0%25-red)
 
 :::info Source
-**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 303
+**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 305
 :::
 
 Remove the link to the Google Drive root folder.

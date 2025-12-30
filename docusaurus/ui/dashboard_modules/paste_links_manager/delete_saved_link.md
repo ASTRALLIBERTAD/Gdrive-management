@@ -9,7 +9,7 @@ title: "delete_saved_link"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`paste_links_manager.py`](./paste_links_manager.py) | **Line:** 552
+**File:** [`paste_links_manager.py`](./paste_links_manager.py) | **Line:** 554
 :::
 
 Remove specific Drive link from saved history.

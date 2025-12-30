@@ -9,7 +9,7 @@ title: "register_student_dialog"
 ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`student_manager.py`](./student_manager.py) | **Line:** 186
+**File:** [`student_manager.py`](./student_manager.py) | **Line:** 188
 :::
 
 Show student registration dialog.

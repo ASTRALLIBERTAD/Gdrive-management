@@ -9,7 +9,7 @@ title: "__init__"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`file_preview_service.py`](./file_preview_service.py) | **Line:** 179
+**File:** [`file_preview_service.py`](./file_preview_service.py) | **Line:** 180
 :::
 
 Initialize FilePreviewService with page and optional Drive service.

@@ -9,7 +9,7 @@ title: "__init__"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`dashboard.py`](./dashboard.py) | **Line:** 201
+**File:** [`dashboard.py`](./dashboard.py) | **Line:** 202
 :::
 
 Initialize the Dashboard with authentication and layout setup.

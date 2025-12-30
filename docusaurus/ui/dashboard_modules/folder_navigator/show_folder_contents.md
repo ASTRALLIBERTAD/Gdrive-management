@@ -9,7 +9,7 @@ title: "show_folder_contents"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`folder_navigator.py`](./folder_navigator.py) | **Line:** 457
+**File:** [`folder_navigator.py`](./folder_navigator.py) | **Line:** 463
 :::
 
 Display contents of specified folder with back navigation support.

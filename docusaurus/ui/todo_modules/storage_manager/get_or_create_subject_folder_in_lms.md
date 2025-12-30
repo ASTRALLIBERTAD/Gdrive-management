@@ -9,7 +9,7 @@ title: "get_or_create_subject_folder_in_lms"
 ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 70
+**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 72
 :::
 
 Retrieve or create a folder for a specific subject within the LMS root.

@@ -9,7 +9,7 @@ title: "display_student_view"
 ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-0%25-red)
 
 :::info Source
-**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 406
+**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 408
 :::
 
 Render the assignment list for the student mode.

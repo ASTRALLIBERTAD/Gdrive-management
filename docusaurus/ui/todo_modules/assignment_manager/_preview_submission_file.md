@@ -1,6 +1,6 @@
 ---
 id: "_preview_submission_file"
-sidebar_position: 17
+sidebar_position: 16
 title: "_preview_submission_file"
 ---
 
@@ -9,7 +9,7 @@ title: "_preview_submission_file"
 ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 922
+**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 904
 :::
 
 Show preview for a submission file.

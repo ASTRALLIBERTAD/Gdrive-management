@@ -9,7 +9,7 @@ title: "_start_polling"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`firebase_mobile_login.py`](./firebase_mobile_login.py) | **Line:** 874
+**File:** [`firebase_mobile_login.py`](./firebase_mobile_login.py) | **Line:** 875
 :::
 
 Initiate background polling for OAuth token retrieval.

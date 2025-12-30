@@ -9,7 +9,7 @@ title: "create_teacher_assignment_card"
 ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 481
+**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 483
 :::
 
 Build a UI card for an assignment (Teacher View).

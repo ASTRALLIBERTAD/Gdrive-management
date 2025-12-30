@@ -9,7 +9,7 @@ title: "_validate_email"
 ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`student_manager.py`](./student_manager.py) | **Line:** 297
+**File:** [`student_manager.py`](./student_manager.py) | **Line:** 299
 :::
 
 Validate email format and uniqueness.

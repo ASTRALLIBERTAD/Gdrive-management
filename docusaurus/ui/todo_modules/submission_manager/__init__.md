@@ -9,7 +9,7 @@ title: "__init__"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`submission_manager.py`](./submission_manager.py) | **Line:** 176
+**File:** [`submission_manager.py`](./submission_manager.py) | **Line:** 177
 :::
 
 Initialize the SubmissionManager with parent view reference.

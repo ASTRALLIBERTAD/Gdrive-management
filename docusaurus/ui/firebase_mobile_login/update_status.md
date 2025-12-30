@@ -9,7 +9,7 @@ title: "update_status"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`firebase_mobile_login.py`](./firebase_mobile_login.py) | **Line:** 549
+**File:** [`firebase_mobile_login.py`](./firebase_mobile_login.py) | **Line:** 550
 :::
 
 Update the status message displayed to the user.

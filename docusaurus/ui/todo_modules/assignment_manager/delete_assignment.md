@@ -1,6 +1,6 @@
 ---
 id: "delete_assignment"
-sidebar_position: 22
+sidebar_position: 18
 title: "delete_assignment"
 ---
 
@@ -9,7 +9,7 @@ title: "delete_assignment"
 ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 1121
+**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 1060
 :::
 
 Show confirmation dialog to delete an assignment.

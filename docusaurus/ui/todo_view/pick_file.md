@@ -9,7 +9,7 @@ title: "pick_file"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`todo_view.py`](./todo_view.py) | **Line:** 1007
+**File:** [`todo_view.py`](./todo_view.py) | **Line:** 1006
 :::
 
 Open file picker dialog for attaching a local file to assignment.

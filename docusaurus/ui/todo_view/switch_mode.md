@@ -9,7 +9,7 @@ title: "switch_mode"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`todo_view.py`](./todo_view.py) | **Line:** 1155
+**File:** [`todo_view.py`](./todo_view.py) | **Line:** 1154
 :::
 
 Toggle between Teacher and Student view modes.

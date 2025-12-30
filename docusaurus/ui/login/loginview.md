@@ -9,7 +9,7 @@ title: "LoginView"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`login.py`](./login.py) | **Line:** 770
+**File:** [`login.py`](./login.py) | **Line:** 772
 :::
 
 Concrete login implementation with OAuth provider and platform detection.

@@ -9,7 +9,7 @@ title: "show_storage_settings"
 ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-0%25-red)
 
 :::info Source
-**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 251
+**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 253
 :::
 
 Show configuration dialog for LMS storage settings.

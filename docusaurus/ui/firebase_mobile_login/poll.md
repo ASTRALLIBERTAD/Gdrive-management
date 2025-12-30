@@ -9,7 +9,7 @@ title: "poll"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`firebase_mobile_login.py`](./firebase_mobile_login.py) | **Line:** 1286
+**File:** [`firebase_mobile_login.py`](./firebase_mobile_login.py) | **Line:** 1287
 :::
 
 Handle polling timeout when authentication takes too long.

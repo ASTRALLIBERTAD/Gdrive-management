@@ -9,7 +9,7 @@ title: "FirebaseMobileLogin"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`firebase_mobile_login.py`](./firebase_mobile_login.py) | **Line:** 30
+**File:** [`firebase_mobile_login.py`](./firebase_mobile_login.py) | **Line:** 31
 :::
 
 Mobile-friendly OAuth 2.0 authentication component for Google sign-in.

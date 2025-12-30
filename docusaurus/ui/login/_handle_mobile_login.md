@@ -9,7 +9,7 @@ title: "_handle_mobile_login"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`login.py`](./login.py) | **Line:** 1150
+**File:** [`login.py`](./login.py) | **Line:** 1152
 :::
 
 Execute mobile OAuth flow with external browser redirect.

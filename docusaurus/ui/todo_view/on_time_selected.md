@@ -9,7 +9,7 @@ title: "on_time_selected"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`todo_view.py`](./todo_view.py) | **Line:** 879
+**File:** [`todo_view.py`](./todo_view.py) | **Line:** 878
 :::
 
 Handle time picker selection event.

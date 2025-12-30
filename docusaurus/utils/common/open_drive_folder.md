@@ -9,7 +9,7 @@ title: "open_drive_folder"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`common.py`](./common.py) | **Line:** 594
+**File:** [`common.py`](./common.py) | **Line:** 598
 :::
 
 Open a Google Drive folder in the default web browser.

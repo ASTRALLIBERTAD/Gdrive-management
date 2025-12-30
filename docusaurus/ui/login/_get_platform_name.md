@@ -9,7 +9,7 @@ title: "_get_platform_name"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`login.py`](./login.py) | **Line:** 383
+**File:** [`login.py`](./login.py) | **Line:** 385
 :::
 
 Retrieve human-readable name of the current platform.

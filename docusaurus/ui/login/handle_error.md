@@ -9,7 +9,7 @@ title: "handle_error"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`login.py`](./login.py) | **Line:** 621
+**File:** [`login.py`](./login.py) | **Line:** 623
 :::
 
 Display error message and log detailed error information.

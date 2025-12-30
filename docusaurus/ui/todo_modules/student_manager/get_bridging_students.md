@@ -9,7 +9,7 @@ title: "get_bridging_students"
 ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`student_manager.py`](./student_manager.py) | **Line:** 330
+**File:** [`student_manager.py`](./student_manager.py) | **Line:** 332
 :::
 
 Return list of students marked as 'bridging'.

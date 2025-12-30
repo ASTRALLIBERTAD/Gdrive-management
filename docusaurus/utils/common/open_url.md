@@ -9,7 +9,7 @@ title: "open_url"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`common.py`](./common.py) | **Line:** 479
+**File:** [`common.py`](./common.py) | **Line:** 483
 :::
 
 Open a URL in the system's default web browser.

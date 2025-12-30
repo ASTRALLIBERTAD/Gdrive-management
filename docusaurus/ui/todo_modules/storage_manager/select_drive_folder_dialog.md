@@ -9,7 +9,7 @@ title: "select_drive_folder_dialog"
 ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-0%25-red)
 
 :::info Source
-**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 336
+**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 338
 :::
 
 Open an overlay for searching and selecting a Drive folder.

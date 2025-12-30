@@ -9,7 +9,7 @@ title: "__init__"
 ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 52
+**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 54
 :::
 
 Initialize the StorageManager.

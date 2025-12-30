@@ -1,6 +1,6 @@
 ---
 id: "edit_assignment_dialog"
-sidebar_position: 21
+sidebar_position: 17
 title: "edit_assignment_dialog"
 ---
 
@@ -9,7 +9,7 @@ title: "edit_assignment_dialog"
 ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 981
+**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 920
 :::
 
 Open a dialog to edit an existing assignment.

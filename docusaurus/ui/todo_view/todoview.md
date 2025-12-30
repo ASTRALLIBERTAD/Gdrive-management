@@ -9,7 +9,7 @@ title: "TodoView"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`todo_view.py`](./todo_view.py) | **Line:** 27
+**File:** [`todo_view.py`](./todo_view.py) | **Line:** 26
 :::
 
 Main orchestrator and UI controller for the Learning Management System.

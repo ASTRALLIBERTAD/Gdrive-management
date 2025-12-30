@@ -9,7 +9,7 @@ title: "_download_file"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`file_preview_service.py`](./file_preview_service.py) | **Line:** 1483
+**File:** [`file_preview_service.py`](./file_preview_service.py) | **Line:** 1484
 :::
 
 Save file content to Downloads folder with duplicate handling.

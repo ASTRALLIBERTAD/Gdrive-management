@@ -9,7 +9,7 @@ title: "_create_word_preview"
 ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`file_preview_service.py`](./file_preview_service.py) | **Line:** 1119
+**File:** [`file_preview_service.py`](./file_preview_service.py) | **Line:** 1120
 :::
 
 Create Microsoft Word placeholder with download and browser options.

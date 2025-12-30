@@ -9,7 +9,7 @@ title: "_render_preview"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`file_preview_service.py`](./file_preview_service.py) | **Line:** 653
+**File:** [`file_preview_service.py`](./file_preview_service.py) | **Line:** 654
 :::
 
 Select and render appropriate preview widget based on file type.

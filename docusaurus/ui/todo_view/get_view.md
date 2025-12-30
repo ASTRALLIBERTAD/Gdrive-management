@@ -1,6 +1,6 @@
 ---
 id: "get_view"
-sidebar_position: 16
+sidebar_position: 15
 title: "get_view"
 ---
 
@@ -9,7 +9,7 @@ title: "get_view"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`todo_view.py`](./todo_view.py) | **Line:** 1594
+**File:** [`todo_view.py`](./todo_view.py) | **Line:** 1521
 :::
 
 Construct and return the complete TodoView UI layout.

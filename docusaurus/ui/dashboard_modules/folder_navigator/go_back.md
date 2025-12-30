@@ -9,7 +9,7 @@ title: "go_back"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`folder_navigator.py`](./folder_navigator.py) | **Line:** 720
+**File:** [`folder_navigator.py`](./folder_navigator.py) | **Line:** 726
 :::
 
 Navigate to previous folder using history stack.

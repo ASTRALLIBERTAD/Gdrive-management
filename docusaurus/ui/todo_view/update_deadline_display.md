@@ -9,7 +9,7 @@ title: "update_deadline_display"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`todo_view.py`](./todo_view.py) | **Line:** 937
+**File:** [`todo_view.py`](./todo_view.py) | **Line:** 936
 :::
 
 Update the UI text showing the selected deadline.

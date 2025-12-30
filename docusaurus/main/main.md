@@ -101,9 +101,9 @@ Exception: Critical errors during initialization displayed on page
   - **show_dashboard()** - Display main application:
     - 1. Clear page.controls
     - 2. Create Dashboard instance with:
-      - a. page reference
-      - b. auth_service
-      - c. handle_logout callback
+    - a. page reference
+    - b. auth_service
+    - c. handle_logout callback
     - 3. Get dashboard view via get_view()
     - 4. Add to page
     - 5. Call page.update()
@@ -117,12 +117,12 @@ Exception: Critical errors during initialization displayed on page
     - 1. Clear page.controls
     - 2. Detect platform: is_mobile = platform in [ANDROID, IOS]
     - 3. If mobile and FirebaseMobileLogin available:
-      - a. Load firebase_config.json if exists
-      - b. Create FirebaseMobileLogin with config
+    - a. Load firebase_config.json if exists
+    - b. Create FirebaseMobileLogin with config
     - c. Add to page
     - 4. Else (desktop):
-      - a. Create LoginView with provider
-      - b. Add to page
+    - a. Create LoginView with provider
+    - b. Add to page
     - 5. Call page.update()
 
 - **Phase 7: Register OAuth Callback**

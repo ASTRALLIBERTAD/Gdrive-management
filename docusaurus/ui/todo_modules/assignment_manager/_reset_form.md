@@ -9,7 +9,7 @@ title: "_reset_form"
 ![Completeness](https://img.shields.io/badge/Docs-0%25-red)
 
 :::info Source
-**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 348
+**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 350
 :::
 
 Clear all inputs in the 'New Assignment' form.

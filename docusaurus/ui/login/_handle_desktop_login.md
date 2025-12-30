@@ -9,7 +9,7 @@ title: "_handle_desktop_login"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`login.py`](./login.py) | **Line:** 1039
+**File:** [`login.py`](./login.py) | **Line:** 1041
 :::
 
 Execute desktop OAuth flow with local callback server.

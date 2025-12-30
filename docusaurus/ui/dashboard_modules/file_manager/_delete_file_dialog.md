@@ -9,7 +9,7 @@ title: "_delete_file_dialog"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`file_manager.py`](./file_manager.py) | **Line:** 1031
+**File:** [`file_manager.py`](./file_manager.py) | **Line:** 1032
 :::
 
 Display confirmation dialog for file or folder deletion.

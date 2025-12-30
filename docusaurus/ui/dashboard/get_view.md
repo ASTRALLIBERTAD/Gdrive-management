@@ -9,7 +9,7 @@ title: "get_view"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`dashboard.py`](./dashboard.py) | **Line:** 1016
+**File:** [`dashboard.py`](./dashboard.py) | **Line:** 1006
 :::
 
 Build and return the complete dashboard layout.

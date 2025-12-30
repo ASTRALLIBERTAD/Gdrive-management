@@ -1,6 +1,6 @@
 ---
 id: "close_preview"
-sidebar_position: 19
+sidebar_position: 18
 title: "close_preview"
 ---
 
@@ -9,7 +9,7 @@ title: "close_preview"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`file_preview_service.py`](./file_preview_service.py) | **Line:** 1687
+**File:** [`file_preview_service.py`](./file_preview_service.py) | **Line:** 1628
 :::
 
 Close currently displayed preview overlay.

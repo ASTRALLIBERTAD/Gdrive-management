@@ -9,7 +9,7 @@ title: "show_folder_menu"
 ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`file_manager.py`](./file_manager.py) | **Line:** 872
+**File:** [`file_manager.py`](./file_manager.py) | **Line:** 873
 :::
 
 Open folder navigation (legacy alias for open_folder).

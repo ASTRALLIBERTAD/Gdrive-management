@@ -9,7 +9,7 @@ title: "PasteLinksManager"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`paste_links_manager.py`](./paste_links_manager.py) | **Line:** 22
+**File:** [`paste_links_manager.py`](./paste_links_manager.py) | **Line:** 24
 :::
 
 Drive link paste and management system with persistent history.

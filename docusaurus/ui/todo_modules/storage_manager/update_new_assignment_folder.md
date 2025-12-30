@@ -9,7 +9,7 @@ title: "update_new_assignment_folder"
 ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 622
+**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 624
 :::
 
 Update the UI with the selected folder's name.

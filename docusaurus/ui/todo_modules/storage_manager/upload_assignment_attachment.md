@@ -9,7 +9,7 @@ title: "upload_assignment_attachment"
 ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 130
+**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 132
 :::
 
 Upload an attachment file to the subject's 'Attachments' subfolder.

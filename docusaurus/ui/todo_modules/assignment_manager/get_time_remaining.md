@@ -9,7 +9,7 @@ title: "get_time_remaining"
 ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 787
+**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 789
 :::
 
 Calculate and format the time remaining until a deadline.

@@ -9,7 +9,7 @@ title: "update_student_dropdown"
 ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-0%25-red)
 
 :::info Source
-**File:** [`student_manager.py`](./student_manager.py) | **Line:** 62
+**File:** [`student_manager.py`](./student_manager.py) | **Line:** 64
 :::
 
 Refresh the student selection dropdown options.

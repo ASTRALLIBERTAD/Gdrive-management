@@ -9,7 +9,7 @@ title: "__init__"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`login.py`](./login.py) | **Line:** 898
+**File:** [`login.py`](./login.py) | **Line:** 900
 :::
 
 Initialize LoginView with OAuth provider and configuration.

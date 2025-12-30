@@ -9,7 +9,7 @@ title: "_get_or_create_attachments_folder_in_lms"
 ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 182
+**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 184
 :::
 
 Find or create the 'Attachments' folder within a subject folder.

@@ -9,7 +9,7 @@ title: "load_saved_links"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`todo_view.py`](./todo_view.py) | **Line:** 650
+**File:** [`todo_view.py`](./todo_view.py) | **Line:** 649
 :::
 
 Load legacy saved link shortcuts from JSON file.

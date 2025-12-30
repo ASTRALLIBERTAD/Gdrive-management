@@ -9,7 +9,7 @@ title: "open_new_assignment_folder_picker"
 ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 607
+**File:** [`storage_manager.py`](./storage_manager.py) | **Line:** 609
 :::
 
 Invoke dialog to select a target Drive folder for an assignment.

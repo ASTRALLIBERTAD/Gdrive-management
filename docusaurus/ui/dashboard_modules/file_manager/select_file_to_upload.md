@@ -9,7 +9,7 @@ title: "select_file_to_upload"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`file_manager.py`](./file_manager.py) | **Line:** 1513
+**File:** [`file_manager.py`](./file_manager.py) | **Line:** 1514
 :::
 
 Open system file picker for uploading files to Drive.

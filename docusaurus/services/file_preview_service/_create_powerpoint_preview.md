@@ -9,7 +9,7 @@ title: "_create_powerpoint_preview"
 ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`file_preview_service.py`](./file_preview_service.py) | **Line:** 1235
+**File:** [`file_preview_service.py`](./file_preview_service.py) | **Line:** 1236
 :::
 
 Create Microsoft PowerPoint placeholder with download and browser options.

@@ -9,7 +9,7 @@ title: "__init__"
 ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 48
+**File:** [`assignment_manager.py`](./assignment_manager.py) | **Line:** 50
 :::
 
 Initialize the AssignmentManager.

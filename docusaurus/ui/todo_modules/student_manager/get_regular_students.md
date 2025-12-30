@@ -9,7 +9,7 @@ title: "get_regular_students"
 ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
-**File:** [`student_manager.py`](./student_manager.py) | **Line:** 341
+**File:** [`student_manager.py`](./student_manager.py) | **Line:** 343
 :::
 
 Return list of regular (non-bridging) students.
