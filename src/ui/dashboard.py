@@ -180,10 +180,6 @@ class Dashboard:
                     "PASTE LINKS",
                     on_click=lambda e: (self.paste_links_manager.load_paste_links_view()),
                 ),
-                ft.ElevatedButton(
-                    "SHARED DRIVES",
-                    on_click=lambda e: (self.folder_navigator.load_shared_drives()),
-                ),
             ], spacing=10, alignment=ft.MainAxisAlignment.CENTER)
         )
 

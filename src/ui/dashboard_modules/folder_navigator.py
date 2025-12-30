@@ -39,25 +39,6 @@ class FolderNavigator:
 
         self.dash.page.update()
     
-    def load_shared_drives(self):
-        self.dash.current_view = "shared_drives"
-        self.dash.folder_stack = []
-        self.dash.folder_list.controls.clear()
-
-        try:
-            results = self.dash.drive.service.drives().list(pageSize=100, fields="drives(id, name)").execute()
-            shared_drives = results.get("drives", [])
-            if not shared_drives:
-                self.dash.folder_list.controls.append(ft.Text("No shared drives found"))
-            else:
-                for d in shared_drives:
-                    fake_folder = {"id": d["id"], "name": d["name"], "mimeType": "application/vnd.google-apps.folder"}
-                    self.dash.folder_list.controls.append(self.dash.file_manager.create_folder_item(fake_folder, 0, is_shared_drive=True))
-        except:
-            self.dash.folder_list.controls.append(ft.Text("Error loading shared drives", color=ft.Colors.RED))
-
-        self.dash.page.update()
-    
     def show_folder_contents(self, folder_id, folder_name=None, is_shared_drive=False, push_to_stack=True):
         display_name = folder_name or folder_id
 
@@ -128,8 +109,6 @@ class FolderNavigator:
                 self.load_your_folders()
             elif self.dash.current_view == "paste_links":
                 self.dash.paste_links_manager.load_paste_links_view()
-            elif self.dash.current_view == "shared_drives":
-                self.load_shared_drives()
         else:
             self.show_folder_contents(fid, fname, push_to_stack=False)
     
