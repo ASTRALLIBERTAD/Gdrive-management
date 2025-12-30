@@ -1,6 +1,6 @@
 import flet as ft
 from services.drive_service import DriveService
-from src.utils.common import show_snackbar
+from utils.common import show_snackbar
 from ui.custom_control.custom_controls import ButtonWithMenu
 from ui.custom_control.gmail_profile_menu import GmailProfileMenu
 from ui.custom_control.multi_account_manager import MultiAccountManager
