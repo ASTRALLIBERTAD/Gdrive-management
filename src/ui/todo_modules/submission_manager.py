@@ -10,6 +10,7 @@ Classes:
 
 import flet as ft
 import datetime
+from utils.common import open_drive_file, open_url, show_snackbar
 
 
 class SubmissionManager:
@@ -603,11 +604,11 @@ class SubmissionManager:
         drive_folder_id = assignment.get('drive_folder_id')
         
         if not self.todo.drive_service:
-            self.todo.show_snackbar("No Drive service available", ft.Colors.RED)
+            show_snackbar(self.todo.page, "No Drive service available", ft.Colors.RED)
             return
         
         if not drive_folder_id:
-            self.todo.show_snackbar("No submission folder linked to this assignment", ft.Colors.RED)
+            show_snackbar(self.todo.page, "No submission folder linked to this assignment", ft.Colors.RED)
             return
         
         selected_folder_id = [drive_folder_id]
@@ -671,9 +672,9 @@ class SubmissionManager:
                 
                 if result:
                     upload_status.value = f"✓ Uploaded to link drive"
-                    self.todo.show_snackbar(f"File uploaded to link drive folder!", ft.Colors.GREEN)
+                    show_snackbar(self.todo.page, f"File uploaded to link drive folder!", ft.Colors.GREEN)
                     
-                    existing = self._get_submission_status(assignment['id'], self.todo.current_student_email)
+                    existing = self.get_submission_status(assignment['id'], self.todo.current_student_email)
                     submitted_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
                     
                     notes = submission_text.value.strip() if submission_text.value else "Uploaded to link drive"
@@ -710,10 +711,10 @@ class SubmissionManager:
                     close_overlay(None)
                 else:
                     upload_status.value = "✗ Upload failed"
-                    self.todo.show_snackbar("Upload failed", ft.Colors.RED)
+                    show_snackbar(self.todo.page, "Upload failed", ft.Colors.RED)
             except Exception as ex:
                 upload_status.value = f"✗ Error: {str(ex)}"
-                self.todo.show_snackbar(f"Error: {str(ex)}", ft.Colors.RED)
+                show_snackbar(self.todo.page, f"Error: {str(ex)}", ft.Colors.RED)
             
             self.todo.page.update()
         
@@ -1118,7 +1119,7 @@ class SubmissionManager:
                                 
                                 self.todo.data_manager.save_submissions(self.todo.submissions)
                                 
-                                self.todo.show_snackbar(f"✓ Grade saved for {student_name_ref}", ft.Colors.GREEN)
+                                show_snackbar(self.todo.page, f"✓ Grade saved for {student_name_ref}", ft.Colors.GREEN)
                                 
                                 close_fn(None)
                                 self.view_submissions_dialog(assignment)
@@ -1128,7 +1129,7 @@ class SubmissionManager:
                                 save_status.color = ft.Colors.RED
                                 e.control.text = "Save Grade"
                                 e.control.disabled = False
-                                self.todo.show_snackbar(f"✗ Failed to save: {str(ex)}", ft.Colors.RED)
+                                show_snackbar(self.todo.page, f"✗ Failed to save: {str(ex)}", ft.Colors.RED)
                             
                             self.todo.page.update()
                         
@@ -1158,12 +1159,12 @@ class SubmissionManager:
                             "Preview File",
                             icon=ft.Icons.VISIBILITY,
                             on_click=lambda e, fid=sub.get('file_id'), fname=sub.get('file_name', 'File'): 
-                                self._preview_file(fid, fname) if self.file_preview and fid else None
+                                self.file_preview.show_preview(file_id=fid, file_name=fname) if self.file_preview else None
                         ) if self.file_preview else ft.Container(),
                         ft.TextButton(
                             "Open in Browser",
                             icon=ft.Icons.OPEN_IN_NEW,
-                            on_click=lambda e, link=sub['file_link']: self._open_link(link)
+                            on_click=lambda e, link=sub['file_link']: open_url(link)
                         )
                     ], spacing=10)
                 elif sub.get('file_id') and self.todo.drive_service:
@@ -1172,12 +1173,12 @@ class SubmissionManager:
                             "Preview File",
                             icon=ft.Icons.VISIBILITY,
                             on_click=lambda e, fid=sub['file_id'], fname=sub.get('file_name', 'File'): 
-                                self._preview_file(fid, fname) if self.file_preview else None
+                                self.file_preview.show_preview(file_id=fid, file_name=fname) if self.file_preview else None
                         ) if self.file_preview else ft.Container(),
                         ft.TextButton(
                             "Open in Browser",
                             icon=ft.Icons.OPEN_IN_NEW,
-                            on_click=lambda e, fid=sub['file_id']: self._open_drive_file(fid)
+                            on_click=lambda e, fid=sub['file_id']: open_drive_file(fid)
                         )
                     ], spacing=10)
                 
@@ -1252,360 +1253,9 @@ class SubmissionManager:
         
         self.todo.page.update()
     
-    def _get_submission_status(self, assignment_id, student_email):
-        """Retrieve submission record for specific assignment and student.
-
-        Searches the submissions list for a matching record based on assignment
-        ID and student email. Used to determine submission status when displaying
-        assignment lists or grading interfaces.
-
-        Args:
-            assignment_id (str): Unique identifier of the assignment to search for.
-            student_email (str): Email address of the student to search for.
-
-        Returns:
-            dict or None: Submission record dictionary if found, containing:
-                - id (str): Unique submission identifier
-                - assignment_id (str): Associated assignment ID
-                - student_email (str): Student's email address
-                - submission_text (str): Student's notes/comments
-                - submitted_at (str): Submission timestamp
-                - grade (str or None): Assigned grade value
-                - feedback (str or None): Teacher's feedback
-                - file_id (str or None): Google Drive file ID
-                - file_name (str or None): Name of uploaded file
-                - file_link (str or None): Direct link to file
-                - uploaded_to_drive (bool): Whether file uploaded successfully
-                - graded_at (str or None): Grading timestamp
-                Returns None if no matching submission found.
-
-        Algorithm:
-            1. **Initialize Search**:
-               a. Begin iteration through self.todo.submissions list
-               b. Each element 'sub' represents a submission dictionary
-            
-            2. **Match Criteria Check**:
-               a. For current submission 'sub' in iteration:
-                  i. Extract sub['assignment_id'] value
-                  ii. Compare with provided assignment_id parameter
-                  iii. Store boolean result of comparison
-               b. Extract sub['student_email'] value
-               c. Compare with provided student_email parameter
-               d. Store boolean result of comparison
-            
-            3. **Match Evaluation**:
-               a. If both conditions are True (AND logic):
-                  i. Assignment ID matches provided ID
-                  ii. Student email matches provided email
-               b. Return the complete submission dictionary immediately
-               c. Exit function with found submission
-            
-            4. **Continue Search**:
-               a. If either condition is False:
-                  i. Continue to next iteration of loop
-                  ii. Check next submission in list
-            
-            5. **No Match Found**:
-               a. If loop completes without finding match:
-                  i. All submissions have been checked
-                  ii. No matching record exists
-               b. Return None to indicate submission not found
-            
-            6. **Return Value Interpretation**:
-               a. If return is dict: submission exists for this student+assignment
-               b. If return is None: student has not submitted this assignment
-               c. Caller can use truthiness check or explicit None comparison
-
-        Interactions:
-            - **TodoView**: Accesses submissions list via self.todo.submissions
-
-        Example:
-            >>> # Check if student has submitted assignment
-            >>> sub = submission_mgr._get_submission_status(
-            ...     'assign_123',
-            ...     'student@example.com'
-            ... )
-            >>> if sub:
-            ...     print(f"Submitted at: {sub['submitted_at']}")
-            ...     print(f"Grade: {sub.get('grade', 'Not graded')}")
-            ... else:
-            ...     print("No submission found")
-            Submitted at: 2025-12-30 10:00
-            Grade: 95/100
-
-        See Also:
-            - :meth:`submit_assignment_dialog`: Creates submission records
-            - :meth:`view_submissions_dialog`: Uses this to check submission status
-            - :class:`~services.data_manager.DataManager`: Persists submission data
-
-        Notes:
-            - Linear search through submissions list (O(n) complexity)
-            - Returns first match found (submissions should be unique per student+assignment)
-            - Used internally by other methods to avoid duplicate submissions
-            - Does not modify the submission record
-        """
-        pass
-
+    def get_submission_status(self, assignment_id, student_email):
+        for sub in self.todo.submissions:
+            if sub['assignment_id'] == assignment_id and sub['student_email'] == student_email:
+                return sub
+        return None
     
-    def _preview_file(self, file_id, file_name):
-        """Launch file preview overlay for submitted assignment file.
-
-        Opens a modal overlay displaying the contents of a Google Drive file
-        using the FilePreviewService. Supports various file types including
-        documents, spreadsheets, presentations, images, and PDFs.
-
-        Args:
-            file_id (str): Google Drive file ID to preview.
-            file_name (str): Display name of the file (shown in preview header).
-
-        Returns:
-            None: Displays preview overlay as side effect. No return value.
-
-        Algorithm:
-            1. **Service Availability Check**:
-               a. Check if self.file_preview attribute is not None
-               b. If file_preview is None:
-                  i. FilePreviewService failed to import or initialize
-                  ii. Preview functionality unavailable
-                  iii. Proceed to step 5 (silent return)
-            
-            2. **File ID Validation**:
-               a. Check if file_id parameter is provided
-               b. Check if file_id is not None and not empty string
-               c. If file_id invalid:
-                  i. No file to preview
-                  ii. Proceed to step 5 (silent return)
-            
-            3. **Preview Service Invocation**:
-               a. Both conditions met (service available, file_id valid)
-               b. Call self.file_preview.show_preview() method
-               c. Pass file_id parameter (Google Drive file identifier)
-               d. Pass file_name parameter (display name for preview header)
-            
-            4. **Preview Display**:
-               a. FilePreviewService handles:
-                  i. Fetching file content from Google Drive
-                  ii. Determining file type (doc, pdf, image, etc.)
-                  iii. Rendering appropriate preview interface
-                  iv. Creating modal overlay with preview content
-                  v. Adding close button for user to dismiss
-               b. Preview overlay appears on screen
-               c. User can view file content without leaving application
-            
-            5. **Silent Failure**:
-               a. If any condition failed (service unavailable or invalid file_id):
-                  i. Function returns immediately with no action
-                  ii. No error message displayed to user
-                  iii. No exception raised
-                  iv. Graceful degradation (button simply has no effect)
-            
-            6. **Return to Caller**:
-               a. Function completes (no return value needed)
-               b. Control returns to event handler
-               c. Application continues normal operation
-
-        Interactions:
-            - **FilePreviewService**: Calls show_preview() method to display file
-            - **DriveService**: Service uses Drive API to fetch file content
-
-        Example:
-            >>> # Preview student's submitted document
-            >>> submission_mgr._preview_file(
-            ...     '1abc...xyz',
-            ...     'Project_Report.docx'
-            ... )
-            >>> # Modal overlay appears with document preview
-            >>> 
-            >>> # Handle missing file_id gracefully
-            >>> submission_mgr._preview_file(None, 'file.txt')
-            >>> # No action taken, no error raised
-
-        See Also:
-            - :meth:`view_submissions_dialog`: Calls this from "Preview File" button
-            - :class:`~services.file_preview_service.FilePreviewService`: Preview service
-            - :meth:`_open_drive_file`: Alternative to open file in browser
-
-        Notes:
-            - Requires FilePreviewService to be initialized (checked in __init__)
-            - Silently fails if file_preview is None (service unavailable)
-            - Silently fails if file_id is None or empty
-            - Preview overlay provides close button for user
-            - Supports multiple file formats depending on service implementation
-            - Does not handle file download (use browser link for that)
-        """
-        if self.file_preview and file_id:
-            self.file_preview.show_preview(file_id=file_id, file_name=file_name)
-    
-    def _open_link(self, link):
-        """Open a web link in the system's default browser.
-
-        Launches the default web browser with the provided URL. Used to open
-        Google Drive file links from the submission grading interface.
-
-        Args:
-            link (str): Full URL to open in browser. Should include protocol
-                (e.g., 'https://drive.google.com/file/d/...'). 
-
-        Returns:
-            None: Opens browser as side effect. No return value.
-
-        Algorithm:
-            1. **Module Import**:
-               a. Import webbrowser module from Python standard library
-               b. Module provides interface to system's web browser
-               c. Import occurs at runtime (not at module level)
-            
-            2. **Browser Invocation**:
-               a. Call webbrowser.open() function
-               b. Pass link parameter as URL string argument
-               c. Function signature: webbrowser.open(url, new=0, autoraise=True)
-               d. Uses default values: new=0 (same window if possible), autoraise=True
-            
-            3. **System Browser Interaction**:
-               a. webbrowser module queries system for default browser
-               b. Determines browser executable path from system settings
-               c. Launches browser process as subprocess
-               d. Passes URL as command-line argument to browser
-            
-            4. **Browser Window Display**:
-               a. Browser application opens (new window or new tab)
-               b. Browser navigates to provided URL
-               c. For Google Drive links: Drive viewer loads with file
-               d. User sees file content in familiar browser environment
-            
-            5. **Non-Blocking Return**:
-               a. webbrowser.open() returns immediately (non-blocking)
-               b. Browser runs as separate process (independent of application)
-               c. Python application continues execution normally
-               d. User can interact with both browser and application
-            
-            6. **Function Completion**:
-               a. Function returns None (no return value needed)
-               b. Control returns to event handler
-               c. Application remains responsive to user input
-
-        Interactions:
-            - **webbrowser**: Python standard library module for browser control
-
-        Example:
-            >>> # Open Google Drive file link
-            >>> file_link = 'https://drive.google.com/file/d/1abc...xyz/view'
-            >>> submission_mgr._open_link(file_link)
-            >>> # Browser window opens with file
-            >>> 
-            >>> # Open any web URL
-            >>> submission_mgr._open_link('https://example.com')
-            >>> # Browser window opens with website
-
-        See Also:
-            - :meth:`view_submissions_dialog`: Uses this for "Open in Browser" button
-            - :meth:`_open_drive_file`: Constructs Drive URL from file_id
-            - :mod:`webbrowser`: Python webbrowser module documentation
-
-        Notes:
-            - Uses system default browser (respects user preference)
-            - Non-blocking operation (application continues running)
-            - No validation of link format or accessibility
-            - Handles both Drive links and general URLs
-            - May fail silently if no browser available (rare on desktop)
-            - Does not check if link is valid or accessible
-        """
-        import webbrowser
-        webbrowser.open(link)
-    
-    def _open_drive_file(self, file_id):
-        """Open a Google Drive file in the system's default browser.
-
-        Constructs a Google Drive file URL from a file ID and opens it in the
-        default web browser. Used when file_link is not stored but file_id is
-        available in the submission record.
-
-        Args:
-            file_id (str): Google Drive file ID (typically 33-character string
-                like '1abc...xyz'). Retrieved from submission record.
-
-        Returns:
-            None: Opens browser as side effect. No return value.
-
-        Algorithm:
-            1. **URL Construction**:
-               a. Define Google Drive file view URL template
-               b. Template format: 'https://drive.google.com/file/d/{FILE_ID}/view'
-               c. Substitute {FILE_ID} placeholder with file_id parameter
-               d. Example result: 'https://drive.google.com/file/d/1abc...xyz/view'
-               e. Store complete URL in local variable
-            
-            2. **Module Import**:
-               a. Import webbrowser module from Python standard library
-               b. Module provides cross-platform browser control interface
-               c. Import occurs at runtime within function scope
-            
-            3. **Browser Open Command**:
-               a. Call webbrowser.open() with constructed URL
-               b. Function signature: webbrowser.open(url, new=0, autoraise=True)
-               c. Default parameters used:
-                  - new=0: reuse existing window if possible
-                  - autoraise=True: bring browser window to foreground
-            
-            4. **System Browser Detection**:
-               a. webbrowser module queries operating system
-               b. Retrieves user's default web browser setting
-               c. Examples: Chrome, Firefox, Safari, Edge
-               d. Determines browser executable path
-            
-            5. **Browser Process Launch**:
-               a. Create new subprocess for browser application
-               b. Pass constructed Drive URL as argument
-               c. Browser process independent from Python application
-               d. Non-blocking operation (function returns immediately)
-            
-            6. **Drive File Display**:
-               a. Browser navigates to Google Drive URL
-               b. Drive authentication checked (uses existing session if available)
-               c. Drive loads file viewer interface
-               d. File rendered in appropriate viewer:
-                  - Documents: Google Docs viewer
-                  - Spreadsheets: Google Sheets viewer
-                  - PDFs: Built-in PDF viewer
-                  - Images: Image viewer with zoom controls
-                  - etc.
-            
-            7. **Function Return**:
-               a. Function completes immediately after browser launch
-               b. Returns None (no return value needed)
-               c. Control returns to calling event handler
-               d. Python application continues execution
-               e. User can interact with both browser and application simultaneously
-
-        Interactions:
-            - **webbrowser**: Python standard library module for browser control
-
-        Example:
-            >>> # Open Drive file by ID
-            >>> file_id = '1abc...xyz'
-            >>> submission_mgr._open_drive_file(file_id)
-            >>> # Browser opens: https://drive.google.com/file/d/1abc...xyz/view
-            >>> 
-            >>> # Typical usage from submission record
-            >>> submission = {
-            ...     'file_id': '1abc...xyz',
-            ...     'file_name': 'Project.pdf'
-            ... }
-            >>> submission_mgr._open_drive_file(submission['file_id'])
-
-        See Also:
-            - :meth:`view_submissions_dialog`: Uses this for "Open in Browser" button
-            - :meth:`_open_link`: Opens pre-constructed URL
-            - :class:`~services.drive_service.DriveService`: Drive integration
-
-        Notes:
-            - URL format uses Drive's file view endpoint
-            - Assumes file_id is valid Google Drive ID (no validation)
-            - Non-blocking operation (application continues running)
-            - User must have access permissions to view file in browser
-            - File opens in browser's Drive viewer (not downloaded)
-            - Alternative to storing full webViewLink in submission record
-            - Uses standard Drive URL structure (stable API endpoint)
-        """
-        import webbrowser
-        webbrowser.open(f"https://drive.google.com/file/d/{file_id}/view")

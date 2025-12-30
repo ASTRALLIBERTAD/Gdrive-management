@@ -16,6 +16,7 @@ import base64
 import mimetypes
 import io
 from googleapiclient.http import MediaIoBaseDownload
+from utils.common import show_snackbar
 
 
 class FilePreviewService:
@@ -1570,9 +1571,9 @@ class FilePreviewService:
             with open(downloads_path, 'wb') as f:
                 f.write(file_data)
             
-            self._show_snackbar(f"✓ Downloaded to: {downloads_path.name}", ft.Colors.GREEN)
+            show_snackbar(self.page, f"✓ Downloaded to: {downloads_path.name}", ft.Colors.GREEN)
         except Exception as e:
-            self._show_snackbar(f"✗ Download failed: {str(e)}", ft.Colors.RED)
+            show_snackbar(self.page, f"✗ Download failed: {str(e)}", ft.Colors.RED)
     
     def _open_in_browser(self, file_id):
         """Open file in system default browser via Google Drive web interface.
@@ -1622,66 +1623,6 @@ class FilePreviewService:
             import webbrowser
             webbrowser.open(f"https://drive.google.com/file/d/{file_id}/view")
     
-    def _show_snackbar(self, message, color):
-        """Display temporary feedback message at bottom of screen.
-
-        Shows transient notification for user actions (downloads, errors).
-        Auto-dismisses after brief period.
-
-        Args:
-            message (str): Feedback text to display. Should be concise.
-                Examples: "✓ Downloaded to: file.pdf", "✗ Download failed: ..."
-            color (ft.Colors): Background color for message type indication.
-                GREEN for success, RED for errors, BLUE for info.
-
-        Returns:
-            None: Creates and displays snackbar as side effects.
-
-        Algorithm:
-            1. **Create Snackbar**:
-               a. Instantiate ft.SnackBar
-               b. Set content: ft.Text(message)
-               c. Set bgcolor: color parameter
-            
-            2. **Show Snackbar**:
-               a. Assign to page.snack_bar
-               b. Set open = True
-               c. Call page.update()
-
-        Interactions:
-            - **ft.SnackBar**: Notification component
-            - **page.update()**: Renders snackbar
-
-        Example:
-            >>> # Success message
-            >>> preview_service._show_snackbar(
-            ...     "✓ Downloaded successfully",
-            ...     ft.Colors.GREEN
-            ... )
-            >>> 
-            >>> # Error message
-            >>> preview_service._show_snackbar(
-            ...     "✗ Operation failed",
-            ...     ft.Colors.RED
-            ... )
-
-        See Also:
-            - :meth:`_download_file`: Uses for feedback
-            - :class:`ft.SnackBar`: Flet snackbar component
-
-        Notes:
-            - Appears at bottom of screen
-            - Auto-dismisses after few seconds
-            - Color coding for message type
-            - Non-blocking (doesn't pause)
-            - Only one snackbar at a time
-        """
-        self.page.snack_bar = ft.SnackBar(
-            content=ft.Text(message),
-            bgcolor=color
-        )
-        self.page.snack_bar.open = True
-        self.page.update()
     
     def close_preview(self):
         """Close currently displayed preview overlay.

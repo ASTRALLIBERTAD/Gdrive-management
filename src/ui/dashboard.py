@@ -13,6 +13,7 @@ See Also:
 
 import flet as ft
 from services.drive_service import DriveService
+from utils.common import show_snackbar
 from ui.custom_control.custom_controls import ButtonWithMenu
 from ui.custom_control.gmail_profile_menu import GmailProfileMenu
 from ui.custom_control.multi_account_manager import MultiAccountManager
@@ -197,7 +198,7 @@ class Dashboard:
         - Material Design Icons: https://fonts.google.com/icons
     """
 
-    def __init__(self, page, auth_service, on_logout, on_add_account=None, on_switch_account=None, on_remove_account=None):
+    def __init__(self, page, auth_service, on_logout, on_add_account=None, on_switch_account=None):
         """Initialize the Dashboard with authentication and layout setup.
 
         Constructs the main dashboard by setting up Google Drive integration,
@@ -331,7 +332,6 @@ class Dashboard:
         self.on_logout = on_logout
         self.on_add_account_callback = on_add_account
         self.on_switch_account_callback = on_switch_account
-        self.on_remove_account_callback = on_remove_account
         self.drive = DriveService(auth_service.get_service())
 
         self.current_folder_id = "root"
@@ -923,26 +923,16 @@ class Dashboard:
     def handle_add_account(self, e):
         if self.on_add_account_callback:
             self.on_add_account_callback()
+            show_snackbar(self.page, "Redirecting to add account...", ft.Colors.PRIMARY)
         else:
-            self.page.snack_bar = ft.SnackBar(
-                content=ft.Text("Redirecting to add another account..."),
-            )
-            self.page.snack_bar.open = True
-            self.page.update()
+            show_snackbar(self.page, "Redirecting to add account...", ft.Colors.PRIMARY)
 
     def handle_switch_account(self, email):
         if self.on_switch_account_callback:
             self.on_switch_account_callback(email)
         else:
-            self.page.snack_bar = ft.SnackBar(
-                content=ft.Text(f"Switching to {email}..."),
-            )
-            self.page.snack_bar.open = True
-            self.page.update()
+            show_snackbar(self.page, f"Switching to {email}...", ft.Colors.PRIMARY)
 
-    def handle_remove_account(self, email):
-        if self.on_remove_account_callback:
-            self.on_remove_account_callback(email)
 
     def handle_action(self, selected_item):
         """Handle sidebar menu action selection.
@@ -1147,7 +1137,6 @@ class Dashboard:
             on_logout=self.handle_logout,
             on_add_account=self.handle_add_account,
             on_switch_account=self.handle_switch_account,
-            on_remove_account=self.handle_remove_account,
             saved_accounts=saved_accounts,
             account_manager=self.account_manager
         )

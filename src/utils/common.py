@@ -6,12 +6,11 @@ formatting, and creating common Flet UI elements like snackbars and dialogs.
 
 import flet as ft
 import json
-import os
 from pathlib import Path
-from datetime import datetime
+from typing import Dict, Any
 
 
-def load_json_file(filepath, default=None):
+def load_json_file(filepath: str | Path, default: Dict[str, Any] | None = None) -> Dict[str, Any]:
     """Load and parse a JSON file with error handling and default fallback.
 
     Reads a JSON file from the filesystem, parses its contents, and returns
@@ -118,13 +117,18 @@ def load_json_file(filepath, default=None):
     """
     if isinstance(filepath, str):
         filepath = Path(filepath)
+
     if filepath.exists():
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except:
+            with filepath.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    return data
+        except Exception:
             pass
-    return default if default is not None else []
+
+    return default if default is not None else {}
+
 
 
 def save_json_file(filepath, data):
@@ -642,85 +646,6 @@ def open_drive_folder(folder_id):
     open_url(f"https://drive.google.com/drive/folders/{folder_id}")
 
 
-def show_snackbar(page, message, color=ft.Colors.BLUE):
-    """Display a transient notification snackbar on a Flet page.
-
-    Creates and displays a snackbar at the bottom of the page with the
-    specified message and background color. Provides temporary user
-    feedback that auto-dismisses after a few seconds.
-
-    Purpose:
-        - Display temporary notifications to users
-        - Provide visual feedback for actions
-        - Support color-coded message types (info/success/error/warning)
-        - Auto-dismiss after brief period
-
-    Args:
-        page (ft.Page): Flet page instance where snackbar will be displayed.
-            Must be active and rendered.
-        message (str): Text message to display in snackbar. Should be
-            concise and informative. Examples: "File saved", "Upload complete",
-            "Error: Connection failed".
-        color (ft.Colors, optional): Background color for snackbar.
-            Used to indicate message type (blue=info, green=success,
-            red=error, orange=warning). Defaults to ft.Colors.BLUE.
-
-    Returns:
-        None: Creates and displays snackbar as side effect.
-
-    Algorithm:
-        1. **Create Snackbar**:
-           a. Instantiate ft.SnackBar
-           b. Set content to ft.Text(message)
-           c. Set bgcolor to specified color
-        
-        2. **Attach to Page**:
-           a. Assign snackbar to page.snack_bar
-           b. Replaces any existing snackbar
-        
-        3. **Show Snackbar**:
-           a. Set page.snack_bar.open = True
-           b. Makes snackbar visible
-        
-        4. **Update Page**:
-           a. Call page.update()
-           b. Renders snackbar at bottom of screen
-
-    Interactions:
-        - **ft.SnackBar**: Creates notification component
-        - **ft.Text**: Message content
-        - **ft.Page**: Displays and updates snackbar
-
-    Example:
-        >>> # Success message
-        >>> show_snackbar(page, "Assignment saved!", ft.Colors.GREEN)
-        >>> 
-        >>> # Error message
-        >>> show_snackbar(page, "Upload failed", ft.Colors.RED)
-        >>> 
-        >>> # Info message (default color)
-        >>> show_snackbar(page, "Loading...")
-        >>> 
-        >>> # Warning message
-        >>> show_snackbar(page, "Disk space low", ft.Colors.ORANGE)
-
-    See Also:
-        - :func:`create_dialog`: Alternative for modal dialogs
-        - :class:`ft.SnackBar`: Flet snackbar component
-
-    Notes:
-        - Snackbar appears at bottom of screen
-        - Auto-dismisses after a few seconds (Flet default)
-        - Only one snackbar visible at a time (new replaces old)
-        - Non-blocking (doesn't pause execution)
-        - Color coding helps indicate message type
-        - Message should be brief for readability
-    """
-    page.snack_bar = ft.SnackBar(content=ft.Text(message), bgcolor=color)
-    page.snack_bar.open = True
-    page.update()
-
-
 def create_icon_button(icon, tooltip, on_click, color=None):
     """Create a standard styled Flet IconButton with consistent configuration.
 
@@ -806,126 +731,100 @@ def create_icon_button(icon, tooltip, on_click, color=None):
         icon_color=color
     )
 
+def show_snackbar(page, message, color=ft.Colors.BLUE, duration=3):
+    """Display a transient notification snackbar on a Flet page.
 
-def create_dialog(page, title, content, actions=None):
-    """Create and display a modal alert dialog on a Flet page.
-
-    Constructs an AlertDialog with title, content, and action buttons,
-    then opens it as a modal overlay. Provides a default OK button if
-    no actions specified.
+    Creates and displays a snackbar at the bottom of the page with the
+    specified message and background color. Provides temporary user
+    feedback that auto-dismisses after a few seconds.
 
     Purpose:
-        - Display modal dialogs for alerts, confirmations, forms
-        - Provide standard dialog structure (title, content, actions)
-        - Auto-generate close handlers for convenience
-        - Block page interaction until dialog dismissed
+        - Display temporary notifications to users
+        - Provide visual feedback for actions
+        - Support color-coded message types (info/success/error/warning)
+        - Auto-dismiss after brief period
 
     Args:
-        page (ft.Page): Flet page instance where dialog will be displayed.
+        page (ft.Page): Flet page instance where snackbar will be displayed.
             Must be active and rendered.
-        title (str): Dialog title text displayed in header. Should be
-            concise and descriptive. Examples: "Confirm Delete",
-            "Error", "Assignment Details".
-        content (ft.Control): Main content control displayed in dialog body.
-            Can be any Flet control (Text, Column, Container, etc.).
-            Examples: ft.Text("Are you sure?"), ft.Column([...])
-        actions (list[ft.Control], optional): List of action button controls
-            for dialog footer. Typically TextButton or ElevatedButton.
-            If None, single OK button auto-generated with close handler.
-            Defaults to None.
+        message (str): Text message to display in snackbar. Should be
+            concise and informative. Examples: "File saved", "Upload complete",
+            "Error: Connection failed".
+        color (ft.Colors, optional): Background color for snackbar.
+            Used to indicate message type (blue=info, green=success,
+            red=error, orange=warning). Defaults to ft.Colors.BLUE.
 
     Returns:
-        ft.AlertDialog: The created and opened dialog instance. Caller
-            can store reference for programmatic closing or modification.
+        None: Creates and displays snackbar as side effect.
 
     Algorithm:
-        1. **Define Close Handler**:
-           a. Create inner function close_dialog_handler(e)
-           b. Implementation:
-              i. Set dialog.open = False
-              ii. Call page.update()
-              iii. Dialog closes and page interaction restored
+        1. **Create Snackbar**:
+           a. Instantiate ft.SnackBar
+           b. Set content to ft.Text(message)
+           c. Set bgcolor to specified color
         
-        2. **Create Dialog**:
-           a. Instantiate ft.AlertDialog
-           b. Set title to ft.Text(title)
-           c. Set content to provided content control
-           d. Set actions to provided list or default OK button:
-              i. If actions is None:
-                 - Create [ft.TextButton("OK", on_click=close_dialog_handler)]
-              ii. Otherwise use provided actions list
+        2. **Attach to Page**:
+           a. Assign snackbar to page.snack_bar
+           b. Replaces any existing snackbar
         
-        3. **Show Dialog**:
-           a. Assign dialog to page.dialog
-           b. Set dialog.open = True
-           c. Call page.update()
-           d. Dialog appears as modal overlay
+        3. **Show Snackbar**:
+           a. Set page.snack_bar.open = True
+           b. Makes snackbar visible
         
-        4. **Return Dialog**:
-           a. Return dialog instance for reference
+        4. **Update Page**:
+           a. Call page.update()
+           b. Renders snackbar at bottom of screen
 
     Interactions:
-        - **ft.AlertDialog**: Creates modal dialog component
-        - **ft.Text**: Dialog title content
-        - **ft.TextButton**: Default OK button
-        - **ft.Page**: Displays and updates dialog
+        - **ft.SnackBar**: Creates notification component
+        - **ft.Text**: Message content
+        - **ft.Page**: Displays and updates snackbar
 
     Example:
-        >>> # Simple alert
-        >>> dialog = create_dialog(
-        ...     page=page,
-        ...     title="Success",
-        ...     content=ft.Text("File saved successfully!")
-        ... )
-        >>> # Dialog shown with OK button (auto-closes)
+        >>> # Success message
+        >>> show_snackbar(page, "Assignment saved!", ft.Colors.GREEN)
         >>> 
-        >>> # Confirmation dialog with custom actions
-        >>> def handle_confirm(e):
-        ...     delete_file()
-        ...     dialog.open = False
-        ...     page.update()
+        >>> # Error message
+        >>> show_snackbar(page, "Upload failed", ft.Colors.RED)
         >>> 
-        >>> dialog = create_dialog(
-        ...     page=page,
-        ...     title="Confirm Delete",
-        ...     content=ft.Text("Are you sure you want to delete this file?"),
-        ...     actions=[
-        ...         ft.TextButton("Cancel", on_click=lambda e: close_dialog(e)),
-        ...         ft.ElevatedButton("Delete", on_click=handle_confirm)
-        ...     ]
-        ... )
+        >>> # Info message (default color)
+        >>> show_snackbar(page, "Loading...")
         >>> 
-        >>> # Dialog with complex content
-        >>> content = ft.Column([
-        ...     ft.Text("Assignment Details"),
-        ...     ft.TextField(label="Title"),
-        ...     ft.TextField(label="Description", multiline=True)
-        ... ])
-        >>> dialog = create_dialog(page, "Edit Assignment", content)
+        >>> # Warning message
+        >>> show_snackbar(page, "Disk space low", ft.Colors.ORANGE)
 
     See Also:
-        - :func:`show_snackbar`: Alternative for brief notifications
-        - :class:`ft.AlertDialog`: Flet alert dialog component
+        - :func:`create_dialog`: Alternative for modal dialogs
+        - :class:`ft.SnackBar`: Flet snackbar component
 
     Notes:
-        - Dialog is modal (blocks page interaction)
-        - Auto-generates OK button if no actions provided
-        - OK button includes auto-generated close handler
-        - Custom actions must handle closing explicitly
-        - Dialog attached to page.dialog (single dialog at a time)
-        - Returns dialog instance for programmatic control
-        - Content can be any Flet control (text, forms, etc.)
+        - Snackbar appears at bottom of screen
+        - Auto-dismisses after a few seconds (Flet default)
+        - Only one snackbar visible at a time (new replaces old)
+        - Non-blocking (doesn't pause execution)
+        - Color coding helps indicate message type
+        - Message should be brief for readability
     """
-    def close_dialog_handler(e):
-        dialog.open = False
-        page.update()
+    import threading
     
-    dialog = ft.AlertDialog(
-        title=ft.Text(title),
-        content=content,
-        actions=actions or [ft.TextButton("OK", on_click=close_dialog_handler)]
+    toast = ft.Container(
+        content=ft.Text(message, color=ft.Colors.WHITE),
+        bgcolor=color,
+        padding=10,
+        border_radius=5,
+        bottom=20,
+        right=20,
+        opacity=0.9
     )
-    page.dialog = dialog
-    dialog.open = True
+    
+    page.overlay.append(toast)
     page.update()
-    return dialog
+    
+    def remove_toast():
+        import time
+        time.sleep(duration)
+        if toast in page.overlay:
+            page.overlay.remove(toast)
+            page.update()
+    
+    threading.Thread(target=remove_toast, daemon=True).start()

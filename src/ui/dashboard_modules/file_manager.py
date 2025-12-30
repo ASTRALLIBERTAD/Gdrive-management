@@ -12,7 +12,7 @@ See Also:
 """
 
 import flet as ft
-from utils.common import format_file_size, create_icon_button, show_snackbar, create_dialog, open_drive_file
+from utils.common import format_file_size, create_icon_button, open_drive_file
 
 
 class FileManager:
@@ -326,10 +326,6 @@ class FileManager:
             - Filtered list contains no None values
             - is_shared_drive currently unused but available
         """
-        
-        def on_preview(e):
-            if not is_folder:
-                self.preview_file(item)
 
         def on_rename(e):
             self._rename_file_dialog(item)
@@ -341,10 +337,9 @@ class FileManager:
             self.show_file_info(item)
         
         menu_items = [
-            ft.PopupMenuItem(text="Preview", on_click=on_preview) if self.file_preview and not is_folder else None,
-            ft.PopupMenuItem(text="Info", on_click=on_info),
-            ft.PopupMenuItem(text="Rename", on_click=on_rename),
-            ft.PopupMenuItem(text="Delete", on_click=on_delete),
+            ft.PopupMenuItem(text="Info", icon=ft.Icons.INFO, on_click=on_info),
+            ft.PopupMenuItem(text="Rename", icon=ft.Icons.EDIT, on_click=on_rename),
+            ft.PopupMenuItem(text="Delete", icon=ft.Icons.DELETE, on_click=on_delete),
         ]
 
         return [item for item in menu_items if item is not None]
@@ -459,19 +454,22 @@ class FileManager:
         menu_items = self.show_menu(folder, is_folder=True, is_shared_drive=is_shared_drive)
 
         return ft.Container(
-            content=ft.Row([
-                ft.Icon(ft.Icons.FOLDER, size=24),
-                ft.Column([
-                    ft.Text(display_name, size=14),
-                    ft.Text(f"{subfolder_count} folders", size=12, color=ft.Colors.GREY_600),
-                ], expand=True),
-
-                ft.PopupMenuButton(items=menu_items),
-            ]),
-            padding=10,
-            border=ft.border.only(bottom=ft.BorderSide(1, ft.Colors.GREY_300)),
-            on_click=lambda e, f=folder: self.open_folder(f, is_shared_drive),
-        )
+                content=ft.Row([
+                    ft.Icon(ft.Icons.FOLDER, size=24),
+                    ft.Column([
+                        ft.Text(display_name, size=14),
+                        ft.Text(f"{subfolder_count} folders", size=12, color=ft.Colors.GREY_600),
+                    ], expand=True),
+                    ft.PopupMenuButton(items=menu_items),
+                ]),
+                padding=8,
+                ink=True,
+                on_click=lambda e, f=folder: self.open_folder(f, is_shared_drive),
+                border=ft.border.all(1, ft.Colors.GREY_300),
+                border_radius=8,
+                margin=ft.margin.only(bottom=10)
+            )
+        
     
     def create_file_item(self, file):
         """Create visual file list item with icon, name, size, and actions.
@@ -624,8 +622,11 @@ class FileManager:
                 *action_buttons
             ]),
             padding=10,
-            border=ft.border.only(bottom=ft.BorderSide(1, ft.Colors.GREY_200)),
+            ink=True,
             on_click=lambda e, f=file: self.handle_file_click(f) if is_folder else self.preview_file(f),
+            border=ft.border.all(1, ft.Colors.GREY_300),
+            border_radius=8,
+            margin=ft.margin.only(bottom=10),
         )
     
     def preview_file(self, file):
