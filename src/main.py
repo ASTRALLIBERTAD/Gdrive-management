@@ -96,16 +96,12 @@ def main(page: ft.Page):
         from utils.common import show_snackbar
         from services.fcm_integration import register_fcm_for_user
 
-        # script_dir = os.path.dirname(os.path.abspath(__file__))
-        # parent_dir = os.path.dirname(script_dir)
-        # file_to_find = "fcm_email.txt"
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(script_dir)
+        file_to_find = "fcm_email.txt"
 
 
-        # found_files = find_files(parent_dir, file_to_find)
-        script_dir = os.path.dirname(os.path.abspath(__file__)) 
-        file_to_find = "fcm_email.txt"  
-
-        found_files = find_files(script_dir, file_to_find)
+        found_files = find_files(parent_dir, file_to_find)
         if found_files:
             show_snackbar(page, "Files found:", ft.Colors.GREEN, duration=9)
             print("Files found:")
