@@ -157,6 +157,7 @@ class AssignmentManager:
                 self.todo.selected_deadline_display.value = f"✓ Deadline: {deadline_str}"
                 self.todo.selected_deadline_display.color = ft.Colors.GREEN
         else:
+            deadline_str = "No deadline"
             self.todo.selected_deadline_display.value = "No deadline selected"
             self.todo.selected_deadline_display.color = None
         
@@ -202,8 +203,7 @@ class AssignmentManager:
             except Exception as ex:
                 show_snackbar(self.todo.page, f"Attachment upload error: {str(ex)}", ft.Colors.ORANGE)
         elif self.todo.selected_attachment["path"] and not self.todo.data_manager.lms_root_id:
-            show_snackbar(self.todo.page, "Warning: No LMS storage folder configured. Attachment not uploaded.", ft.Colors.ORANGE)
-        
+            show_snackbar(self.todo.page, "Warning: No LMS storage folder configured. Attachment not uploaded.", ft.Colors.ORANGE) 
         self.todo.assignments.append(new_assignment)
         self.todo.data_manager.save_assignments(self.todo.assignments)
         
@@ -214,7 +214,31 @@ class AssignmentManager:
         
         self.todo.display_assignments()
         show_snackbar(self.todo.page, "Assignment added! Students notified.", ft.Colors.GREEN)
-    
+        
+        if self.todo.students:
+            import os
+            os.environ['FIREBASE_DB_URL'] = "https://gdrive-manager-479819-default-rtdb.asia-southeast1.firebasedatabase.app"
+            
+            from services.fcm_service import get_fcm_service
+            
+            fcm = get_fcm_service()
+            student_emails = [s['email'] for s in self.todo.students]
+            
+            fcm.send_to_multiple(
+                emails=student_emails,
+                title=f"New Assignment: {new_assignment['title']}",
+                body=f"Subject: {new_assignment['subject']} | Due: {deadline_str}",
+                data={
+                    "assignment_id": new_assignment['id'],
+                    "subject": new_assignment['subject']
+                },
+                notification_type="new_assignment"
+            )
+            
+            show_snackbar(self.todo.page, 
+                f"Assignment created and {len(student_emails)} students notified!", 
+                ft.Colors.GREEN)
+        
     def show_past_deadline_dialog(self, deadline, current_time):
         """Display a warning dialog if the selected deadline is in the past.
 
@@ -1054,7 +1078,7 @@ class AssignmentManager:
             ], alignment=ft.MainAxisAlignment.END)
         ], spacing=10)
         
-        close_overlay = self.todo.show_overlay(content, "Edit Assignment", width=400)
+        overlay, close_overlay = self.todo.show_overlay(content, "Edit Assignment", width=400)
     
     def delete_assignment(self, assignment):
         """Show confirmation dialog to delete an assignment.
@@ -1097,7 +1121,7 @@ class AssignmentManager:
             ], alignment=ft.MainAxisAlignment.END)
         ], tight=True, spacing=10)
         
-        close_overlay = self.todo.show_overlay(content, "Confirm Delete", width=350)
+        overlay, close_overlay = self.todo.show_overlay(content, "Confirm Delete", width=350)
     
     def show_notifications_dialog(self):
         """Show a dialog listing recent notifications for the current student.

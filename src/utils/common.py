@@ -814,7 +814,8 @@ def show_snackbar(page, message, color=ft.Colors.BLUE, duration=3):
         border_radius=5,
         bottom=20,
         right=20,
-        opacity=0.9
+        opacity=0.9,
+        expand=True
     )
     
     page.overlay.append(toast)

@@ -227,6 +227,13 @@ def repair_filesystem(cwd):
     except Exception:
         pass
 
+def find_files(search_dir, search_name):
+    matches = []
+    for root, dirs, files in os.walk(search_dir):
+        for file in files:
+            if search_name in file:
+                matches.append(os.path.join(root, file))
+    return matches
 
 def load_credentials(app_path, cwd):
 
@@ -612,6 +619,23 @@ def main(page: ft.Page):
         from ui.login import LoginView
         from ui.custom_control.multi_account_manager import MultiAccountManager
         from utils.common import show_snackbar
+        from services.fcm_integration import register_fcm_for_user
+
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(script_dir)
+        file_to_find = "fcm_email.txt"
+
+
+        found_files = find_files(parent_dir, file_to_find)
+        if found_files:
+            show_snackbar(page, "Files found:", ft.Colors.GREEN, duration=9)
+            print("Files found:")
+            for f in found_files:
+                print(f)
+                show_snackbar(page, f, ft.Colors.GREEN, duration=9)
+        else:
+            show_snackbar(page, "No files found.", ft.Colors.RED, duration=9)
+            print("No files found.")
         
         try:
             from ui.firebase_mobile_login import FirebaseMobileLogin
@@ -677,9 +701,12 @@ def main(page: ft.Page):
                 if user_info:
                     email = user_info.get("emailAddress")
                     account_manager.set_current_account(email)
+
+                    register_fcm_for_user(page, email)
                 show_dashboard()
             else:
                 show_snackbar(page, "Authentication failed: Could not complete login", ft.Colors.RED)
+
         
         page.on_login = handle_on_login
                 
@@ -696,10 +723,13 @@ def main(page: ft.Page):
             page.update()
         
         def handle_logout():
-            # Only log out, do not remove any saved accounts
             auth_service.logout()
             if hasattr(page.auth, 'logout'):
                 page.auth.logout()
+            
+            from services.fcm_integration import clear_saved_email
+            clear_saved_email(page)
+            
             show_login()
         
         def handle_add_account():
@@ -722,6 +752,7 @@ def main(page: ft.Page):
             if token_data:
                 if auth_service.login_with_token(token_data):
                     account_manager.set_current_account(email)
+                    register_fcm_for_user(page, email)
                     show_dashboard()
                 else:
                     show_snackbar(page, f"Session expired for {email}. Please login again.", ft.Colors.ORANGE)
@@ -806,6 +837,8 @@ def main(page: ft.Page):
             current_email = save_current_account_if_logged_in()
             if current_email:
                 account_manager.set_current_account(current_email)
+                # Re-register FCM on Android app restart
+                register_fcm_for_user(page, current_email)
             show_dashboard()
         else:
             show_login()
@@ -816,7 +849,6 @@ def main(page: ft.Page):
         page.add(ft.Text(f"CRITICAL ERROR: {e}", color=ft.Colors.RED))
         page.update()
         print(f"CRITICAL ERROR:\n{error_msg}")
-
 
 if __name__ == "__main__":
     ft.app(target=main)

@@ -283,6 +283,11 @@ class StorageManager:
             except:
                 current_folder_name = "Invalid ID"
         
+        # Show data sync status
+        sync_status_text = "❌ Not syncing"
+        if self.drive_service and lms_root_id:
+            sync_status_text = "✓ Syncing with Drive"
+        
         def unlink_drive(e):
             self._unlink_drive_folder()
             close_overlay(e)
@@ -294,6 +299,13 @@ class StorageManager:
         content = ft.Column([
             ft.Text(f"Current LMS Data Folder: {current_folder_name}", weight=ft.FontWeight.BOLD),
             ft.Text("Select a shared folder where all students and teachers have access."),
+            ft.Divider(),
+            ft.Row([
+                ft.Icon(ft.Icons.CLOUD_SYNC, size=20),
+                ft.Text(f"Data Sync: {sync_status_text}", size=14, weight=ft.FontWeight.BOLD)
+            ]),
+            ft.Text("When enabled, assignments, students, submissions, and notifications sync automatically.", 
+                   size=12, color=ft.Colors.GREY_600, italic=True),
             ft.Divider(),
             ft.ElevatedButton("Select/Change Drive Folder", on_click=select_drive),
             ft.ElevatedButton("Unlink (Use Local)", on_click=unlink_drive, color=ft.Colors.RED)
@@ -328,6 +340,11 @@ class StorageManager:
             json.dump(config, f, indent=2)
         
         self.todo.data_manager.lms_root_id = None
+        
+        # Update notification service
+        if self.todo.notification_service:
+            self.todo.update_lms_root_id(None)
+        
         show_snackbar(self.todo.page, "Unlinked Drive folder. Using local storage.", ft.Colors.ORANGE)
         
         self.todo.students = self.todo.data_manager.load_students()
@@ -389,7 +406,14 @@ class StorageManager:
             self.todo.assignments = self.todo.data_manager.load_assignments()
             self.todo.students = self.todo.data_manager.load_students()
             self.todo.submissions = self.todo.data_manager.load_submissions()
+            
+            # Update and sync notification service
+            if self.todo.notification_service:
+                self.todo.update_lms_root_id(folder['id'])
+            
+            self.todo.student_manager.update_student_dropdown()
             self.todo.display_assignments()
+            show_snackbar(self.todo.page, "✓ All data synced with Drive", ft.Colors.BLUE)
         
         def process_link(e):
             link = link_field.value.strip() if link_field.value else ""

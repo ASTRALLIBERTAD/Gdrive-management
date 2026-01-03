@@ -7,12 +7,16 @@ requires-python = ">=3.9"
 authors = [
     { name = "ASTRALLIBERTAD", email = "astrallibertad@gmail.com" }
 ]
-dependencies = [
-  "flet == 0.28.3",
-  "google-auth",
-  "google-auth-oauthlib",
-  "google-api-python-client",
+ dependencies = [
+   "flet == 0.28.3",
+   "google-auth",
+   "google-auth-oauthlib",
+   "google-api-python-client",
+   "firebase-admin",
+   "requests",
+   "plyer"
 ]
+
 
 [tool.flet]
 org = "com.pld1"
@@ -30,10 +34,25 @@ path = "src"
 show = true
 message = "Starting up the app…"
 
+permissions = [
+  "notification",
+  "access_notification_policy",
+  "post_notifications",
+  "wake_lock",
+  "foreground_service"
+]
+
 [tool.flet.app.android]
+"android.permission.NOTIFICATION" = true
+"android.permission.ACCESS_NOTIFICATION" = true
+"android.permission.POST_NOTIFICATIONS" = true
+"android.permission.WAKE_LOCK" = true
+"android.permission.FOREGROUND_SERVICE" = true
 "android.permission.INTERNET" = true
 "android.permission.READ_EXTERNAL_STORAGE" = true
 "android.permission.WRITE_EXTERNAL_STORAGE" = true
+"android.permission.RECEIVE_BOOT_COMPLETED" = true
+
 
 
 [build-system]

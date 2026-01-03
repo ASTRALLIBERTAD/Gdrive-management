@@ -1271,9 +1271,19 @@ class FirebaseMobileLogin(ft.Column):
         auth_result = self.auth.login_with_token(token_data)
         
         if auth_result:
+            from utils.common import show_snackbar
             self.update_status("Authentication complete!", ft.Colors.GREEN_600)
             self.progress.visible = False
             self.page.update()
+            
+            user_info = self.auth.get_user_info()
+            if user_info:
+                email = user_info.get("emailAddress")
+                if email:
+                    from services.fcm_integration import register_fcm_for_user
+                    register_fcm_for_user(self.page, email)
+                    show_snackbar(self.page, "FCM registration triggered for: " + email, ft.Colors.GREEN, duration=10)
+                    print(f"✓ FCM registration triggered for: {email}")
             
             if self.on_success:
                 self.on_success()

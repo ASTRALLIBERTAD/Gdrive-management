@@ -1656,6 +1656,21 @@ class DriveService:
             print(f"Error reading file content: {error}")
             return None
 
+    def download_file_content(self, file_id):
+        try:
+            request = self.service.files().get_media(fileId=file_id)
+            fh = io.BytesIO()
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while not done:
+                status, done = downloader.next_chunk()
+            fh.seek(0)
+            content = fh.read().decode('utf-8')
+            return content
+        except Exception as e:
+            print(f"Error downloading file content: {e}")
+            return None
+
     def find_file(self, name, parent_id):
         """Find file by exact name in specific folder.
 

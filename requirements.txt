@@ -1,4 +1,7 @@
-flet
+flet==0.28.3
+pyjnius
+flet-permission-handler
 google-auth
 google-auth-oauthlib
 google-api-python-client
+plyer

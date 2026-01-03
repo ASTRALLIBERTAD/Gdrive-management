@@ -130,9 +130,18 @@ class StudentManager:
             students_list.controls.clear()
             for student in self.todo.students:
                 bridging_badge = "[B] " if student.get('is_bridging', False) else ""
+                
+                # Check if student has FCM token registered
+                fcm_status = ""
+                if hasattr(self.todo, 'notification_service') and self.todo.notification_service:
+                    if self.todo.notification_service.fcm_service:
+                        token = self.todo.notification_service.fcm_service.get_token(student['email'])
+                        if token:
+                            fcm_status = " 📱"
+                
                 students_list.controls.append(
                     ft.Row([
-                        ft.Text(f"{bridging_badge}{student['name']} ({student['email']})", expand=True),
+                        ft.Text(f"{bridging_badge}{student['name']} ({student['email']}){fcm_status}", expand=True),
                         ft.IconButton(
                             icon=ft.Icons.DELETE,
                             icon_color=ft.Colors.RED,
@@ -141,6 +150,15 @@ class StudentManager:
                         )
                     ])
                 )
+            
+            # Add FCM legend
+            students_list.controls.insert(0, ft.Text(
+                "📱 = FCM notifications enabled",
+                size=11,
+                color=ft.Colors.GREY_600,
+                italic=True
+            ))
+            
             self.todo.page.update()
         
         def add_student(e):
@@ -214,6 +232,7 @@ class StudentManager:
         student_id_field = ft.TextField(label="Student ID (required)", width=300)
         bridging_switch = ft.Switch(label="I am a Bridging Student", value=False)
         error_text = ft.Text("", color=ft.Colors.RED, size=12)
+        success_text = ft.Text("", color=ft.Colors.GREEN, size=12)
         
         def do_register(e):
             name = name_field.value.strip() if name_field.value else ""
@@ -221,6 +240,9 @@ class StudentManager:
             student_id = student_id_field.value.strip() if student_id_field.value else ""
             is_bridging = bridging_switch.value
             
+            # Clear previous messages
+            error_text.value = ""
+            success_text.value = ""
 
             if not name:
                 error_text.value = "Please enter your full name"
@@ -261,11 +283,22 @@ class StudentManager:
             
             student_type = "Bridging Student" if is_bridging else "Regular Student"
             
-            close_overlay(e)
+            success_text.value = f"✓ Registration successful! You're now registered as {student_type}."
+            error_text.value = ""
+            self.todo.page.update()
             
             self.update_student_dropdown()
             self.todo.student_dropdown.value = email
             self.todo.current_student_email = email
+            if hasattr(self.todo, 'notification_service') and self.todo.notification_service:
+                if self.todo.notification_service.fcm_service:
+                    show_snackbar(self.todo.page, "FCM service is available", ft.Colors.GREEN)
+                    print(f"✓ Student registered: {email}")
+                    print(f"  Next step: Open the mobile app and it will automatically register for notifications")
+            
+            import time
+            time.sleep(1.5)
+            close_overlay(e)
             
             self.todo.display_assignments()
             show_snackbar(self.todo.page, f"Welcome, {name}! Registered as {student_type}.", ft.Colors.GREEN)
@@ -283,6 +316,7 @@ class StudentManager:
             ft.Text("Bridging students are those transferring or taking additional courses.",
                    size=11, color=ft.Colors.GREY_600, italic=True),
             error_text,
+            success_text,
             ft.Row([
                 ft.TextButton("Cancel", on_click=lambda e: close_overlay(e)),
                 ft.ElevatedButton(

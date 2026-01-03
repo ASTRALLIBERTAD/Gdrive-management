@@ -403,9 +403,14 @@ class TodoView:
         self.submissions = self.data_manager.load_submissions()
         self.saved_links = self.load_saved_links()
         
+        # Initialize notification service with Drive support
         try:
             from services.notification_service import NotificationService
-            self.notification_service = NotificationService(self.data_dir)
+            self.notification_service = NotificationService(
+                self.data_dir, 
+                drive_service=drive_service,
+                lms_root_id=self.data_manager.lms_root_id
+            )
         except ImportError:
             self.notification_service = None
         
@@ -413,6 +418,51 @@ class TodoView:
         self.current_student_email = None
         
         self._init_ui_components()
+    
+    def refresh_notifications(self):
+        """Refresh notifications from Drive"""
+        if self.notification_service:
+            success = self.notification_service.sync_from_drive()
+            if success:
+                self.display_assignments()
+                from utils.common import show_snackbar
+                show_snackbar(self.page, "✓ Notifications synced from Drive", ft.Colors.GREEN)
+                return True
+        return False
+    
+    def sync_all_data(self):
+        """Sync all data (assignments, students, submissions, notifications) from Drive"""
+        from utils.common import show_snackbar
+        
+        if not self.drive_service or not self.data_manager.lms_root_id:
+            show_snackbar(self.page, "Drive storage not configured", ft.Colors.ORANGE)
+            return
+        
+        synced_items = []
+        
+        if self.data_manager.sync_from_drive():
+            self.assignments = self.data_manager.load_assignments()
+            self.students = self.data_manager.load_students()
+            self.submissions = self.data_manager.load_submissions()
+            synced_items.append("data")
+        
+        if self.notification_service and self.notification_service.sync_from_drive():
+            synced_items.append("notifications")
+        
+        if synced_items:
+            self.student_manager.update_student_dropdown()
+            self.display_assignments()
+            show_snackbar(self.page, f"✓ Synced: {', '.join(synced_items)}", ft.Colors.GREEN)
+        else:
+            show_snackbar(self.page, "No updates found", ft.Colors.BLUE)
+    
+    def update_lms_root_id(self, new_root_id):
+        """Update the LMS root ID and reinitialize notification service"""
+        if self.notification_service:
+            self.notification_service.lms_root_id = new_root_id
+            self.notification_service.drive_file_id = None  # Reset to search for file in new location
+            # Try to load from new location
+            self.notification_service.notifications = self.notification_service.load_notifications()
         
     def _init_ui_components(self):
         """Initialize all persistent UI controls and layout containers.
@@ -628,6 +678,14 @@ class TodoView:
             "Storage",
             icon=ft.Icons.SETTINGS,
             on_click=lambda e: self.storage_manager.show_storage_settings()
+        )
+        
+        # Add sync button for all data
+        self.sync_notifications_btn = ft.IconButton(
+            icon=ft.Icons.SYNC,
+            tooltip="Sync All Data from Drive",
+            on_click=lambda e: self.sync_all_data(),
+            visible=self.notification_service is not None
         )
         
         self.student_dropdown = ft.Dropdown(
@@ -1742,6 +1800,7 @@ class TodoView:
                     back_btn,
                     ft.Icon(ft.Icons.SCHOOL, size=40, color=ft.Colors.BLUE),
                     ft.Text("Learning Management System", size=28, weight=ft.FontWeight.BOLD, expand=True, overflow=ft.TextOverflow.VISIBLE, no_wrap=False),
+                    self.sync_notifications_btn,  # Add sync button
                 ], alignment=ft.MainAxisAlignment.START),
                 padding=20
             ),
