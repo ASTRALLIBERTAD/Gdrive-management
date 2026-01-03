@@ -1,15 +1,15 @@
 ---
-id: "_execute_file_list_query"
+id: "execute_file_list_query"
 sidebar_position: 9
-title: "_execute_file_list_query"
+title: "execute_file_list_query"
 ---
 
-# ⚙️ _execute_file_list_query
+# ⚙️ execute_file_list_query
 
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 614
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 629
 :::
 
 Execute Drive API files.list query with retry logic.
@@ -34,21 +34,21 @@ and automatic retry handling. Used by list and search operations.
 
 ## Algorithm
 
-  - 1. **Define Request Function**:
-    - a. Create make_request() closure
-    - b. Calls self.service.files().list() with parameters:
-    - i. q=query (filter condition)
-    - ii. pageSize=page_size (results per page)
-    - iii. pageToken=page_token (pagination)
-    - iv. fields=fields (response fields)
-    - v. orderBy=order_by (sort order)
-    - c. Calls .execute() to perform request
-    - d. Returns API response dictionary
+- **Phase 1: Define Request Function**:
+  - 1. Create make_request() closure
+  - 2. Calls self.service.files().list() with parameters:
+    - a. q=query (filter condition)
+    - b. pageSize=page_size (results per page)
+    - c. pageToken=page_token (pagination)
+    - d. fields=fields (response fields)
+    - e. orderBy=order_by (sort order)
+  - 2. Calls .execute() to perform request
+  - 3. Returns API response dictionary
 
-  - 2. **Execute with Retry**:
-    - a. Call self._retry_request(make_request, operation_name)
-    - b. operation_name includes truncated query for logging
-    - c. Returns result or None on failure
+- **Phase 2: Execute with Retry**:
+  - 1. Call self._retry_request(make_request, operation_name)
+  - 2. operation_name includes truncated query for logging
+  - 3. Returns result or None on failure
 
 ## Interactions
 

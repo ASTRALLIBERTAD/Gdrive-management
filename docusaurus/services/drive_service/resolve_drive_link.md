@@ -9,7 +9,7 @@ title: "resolve_drive_link"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1063
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1085
 :::
 
 Parse Google Drive URL and retrieve file information.
@@ -31,27 +31,31 @@ Handles multiple URL formats (folders, files, query parameters).
 
 ## Algorithm
 
-  - 1. **Extract File ID**:
-    - a. Call extract_drive_id(link)
-    - b. Handles URL parsing with regex patterns
-    - c. Returns file ID or None
+- **Phase 1: Extract File ID**
+  - 1. Call extract_drive_id(link)
+  - 2. Handles URL parsing with regex patterns
+  - 3. Returns file ID or None
 
-  - 2. **Validate Extraction**:
-    - a. If file_id is None:
-    - i. Print error message with link
-    - ii. Return (None, None)
 
-  - 3. **Get File Info**:
-    - a. Call self.get_file_info(file_id)
-    - b. Returns file metadata dict or None
+- **Phase 2: Validate Extraction**
+  - 1. If file_id is None:
+  - 2. Print error message with link
+    - a. Return (None, None)
 
-  - 4. **Validate Info**:
-    - a. If info is None:
-    - i. Print error message with file_id
-    - ii. Return (None, None)
 
-  - 5. **Return Success**:
-    - a. Return tuple (file_id, info)
+- **Phase 3: Get File Info**
+  - 1. Call self.get_file_info(file_id)
+  - 2. Returns file metadata dict or None
+
+
+- **Phase 4: Validate Info**
+  - 1. If info is None:
+  - 2. Print error message with file_id
+    - a. Return (None, None)
+
+
+- **Phase 5: Return Success**
+  - 1. Return tuple (file_id, info)
 
 ## Interactions
 

@@ -1,15 +1,15 @@
 ---
-id: "_invalidate_cache"
+id: "invalidate_cache"
 sidebar_position: 7
-title: "_invalidate_cache"
+title: "invalidate_cache"
 ---
 
-# ⚙️ _invalidate_cache
+# ⚙️ invalidate_cache
 
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 433
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 440
 :::
 
 Clear cached data for specific folder or entire cache.
@@ -29,26 +29,28 @@ full cache invalidation.
 
 ## Algorithm
 
-  - 1. **Check Invalidation Scope**:
-    - a. If folder_id provided:
-    - i. Selective invalidation (folder-specific)
-    - b. If folder_id is None:
-    - i. Full invalidation (entire cache)
+- **Phase 1: Check Invalidation Scope**
+  - 1. If folder_id provided:
+  - 2. Selective invalidation (folder-specific)
+  - 3. If folder_id is None:
+  - 4. Full invalidation (entire cache)
 
-  - 2. **Selective Invalidation** (if folder_id):
-    - a. Find keys containing folder_id
-    - b. Create list: keys_to_remove = [k for k in cache if folder_id in k]
-    - c. Delete each matching key from cache
-    - d. Try to clear LRU cache:
-    - i. Check if _cached_get_file_info exists
-    - ii. Call cache_clear() on LRU cache
-    - iii. Catch and ignore errors (defensive)
 
-  - 3. **Full Invalidation** (if folder_id is None):
-    - a. Call self._cache.clear()
-    - b. Removes all cache entries
-    - c. Clear LRU cache if exists:
-    - i. Call _cached_get_file_info.cache_clear()
+- **Phase 2: Selective Invalidation (if folder_id)**
+  - 1. Find keys containing folder_id
+  - 2. Create list: keys_to_remove = [k for k in cache if folder_id in k]
+  - 3. Delete each matching key from cache
+  - 4. Try to clear LRU cache:
+  - 5. Check if _cached_get_file_info exists
+    - a. Call cache_clear() on LRU cache
+    - b. Catch and ignore errors (defensive)
+
+
+- **Phase 3: Full Invalidation (if folder_id is None)**
+  - 1. Call self._cache.clear()
+  - 2. Removes all cache entries
+  - 3. Clear LRU cache if exists:
+  - 4. Call _cached_get_file_info.cache_clear()
 
 ## Interactions
 

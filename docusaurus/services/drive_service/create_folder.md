@@ -9,7 +9,7 @@ title: "create_folder"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1224
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1254
 :::
 
 Create a new folder in Google Drive.
@@ -32,23 +32,24 @@ Automatically invalidates parent folder cache.
 
 ## Algorithm
 
-  - 1. **Define Request Function**:
-    - a. Create make_request() closure
-    - b. Build file_metadata dictionary:
-    - i. name: folder_name
-    - ii. mimeType: 'application/vnd.google-apps.folder'
-    - iii. parents: [parent_id]
-    - c. Call service.files().create() with metadata
-    - d. Specify fields: 'id, name'
-    - e. Execute request
-    - f. Returns created folder dict
+- **Phase 1: Define Request Function**
+  - 1. Create make_request() closure
+  - 2. Build file_metadata dictionary:
+  - 3. name: folder_name
+    - a. mimeType: 'application/vnd.google-apps.folder'
+    - b. parents: [parent_id]
+  - 4. Call service.files().create() with metadata
+  - 5. Specify fields: 'id, name'
+  - 6. Execute request
+  - 7. Returns created folder dict
 
-  - 2. **Execute Mutation**:
-    - a. Call _execute_file_mutation() with:
-    - i. operation_name: "create_folder(&#123;folder_name&#125;)"
-    - ii. request_func: make_request
-    - iii. parent_id: parent_id (for cache invalidation)
-    - b. Returns result or None
+
+- **Phase 2: Execute Mutation**
+  - 1. Call _execute_file_mutation() with:
+  - 2. operation_name: "create_folder(&#123;folder_name&#125;)"
+    - a. request_func: make_request
+    - b. parent_id: parent_id (for cache invalidation)
+  - 3. Returns result or None
 
 ## Interactions
 

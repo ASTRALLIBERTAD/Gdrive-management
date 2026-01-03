@@ -1,15 +1,15 @@
 ---
-id: "_setup_lru_caches"
+id: "setup_lru_caches"
 sidebar_position: 4
-title: "_setup_lru_caches"
+title: "setup_lru_caches"
 ---
 
-# ⚙️ _setup_lru_caches
+# ⚙️ setup_lru_caches
 
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-40%25-red)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 260
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 263
 :::
 
 Setup LRU (Least Recently Used) caches for frequent operations.
@@ -25,20 +25,20 @@ This reduces API calls for frequently accessed file metadata.
 
 ## Algorithm
 
-  - 1. **Define Cached Wrapper**:
-    - a. Create inner function cached_get_file_info(file_id)
-    - b. Function calls self.get_file_info(file_id, use_cache=False)
-    - c. Bypasses time-based cache to avoid double-caching
+- **Phase 1: Define Cached Wrapper**
+  - 1. Create inner function cached_get_file_info(file_id)
+  - 2. Function calls self.get_file_info(file_id, use_cache=False)
+  - 3. Bypasses time-based cache to avoid double-caching
 
-  - 2. **Apply LRU Cache Decorator**:
-    - a. Decorate function with @lru_cache(maxsize=128)
-    - b. Maintains 128 most recently accessed file IDs
-    - c. O(1) lookup performance for cached entries
+- **Phase 2: Apply LRU Cache Decorator**
+  - 1. Decorate function with @lru_cache(maxsize=128)
+  - 2. Maintains 128 most recently accessed file IDs
+  - 3. O(1) lookup performance for cached entries
 
-  - 3. **Store Cached Function**:
-    - a. Assign decorated function to self._cached_get_file_info
-    - b. Used by get_file_info when use_cache=True
-    - c. Provides fast access to frequently queried files
+- **Phase 3: Store Cached Function**
+  - 1. Assign decorated function to self._cached_get_file_info
+  - 2. Used by get_file_info when use_cache=True
+  - 3. Provides fast access to frequently queried files
 
 ## Interactions
 

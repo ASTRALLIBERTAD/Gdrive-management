@@ -25,24 +25,26 @@ and LRU cache initialization for optimized API operations.
 
 ## Algorithm
 
-  - 1. **Store Service Reference**:
-    - a. Assign service parameter to self.service
-    - b. Service provides access to all Drive API endpoints
+- **Phase 1: Store Service Reference**
+  - 1. Assign service parameter to self.service
+  - 2. Service provides access to all Drive API endpoints
 
-  - 2. **Initialize Cache System**:
-    - a. Create empty cache dictionary: self._cache = &#123;&#125;
-    - b. Store TTL value: self._cache_ttl = cache_ttl
-    - c. Cache stores (data, timestamp) tuples
 
-  - 3. **Configure Retry Parameters**:
-    - a. Set max_retries: self.max_retries = max_retries
-    - b. Set base retry delay: self.retry_delay = 1 second
-    - c. Actual delay uses exponential backoff: delay * (2 ** attempt)
+- **Phase 2: Initialize Cache System**
+  - 1. Create empty cache dictionary: self._cache = &#123;&#125;
+  - 2. Store TTL value: self._cache_ttl = cache_ttl
+  - 3. Cache stores (data, timestamp) tuples
 
-  - 4. **Setup LRU Caches**:
-    - a. Call self._setup_lru_caches()
-    - b. Creates cached wrapper for get_file_info
-    - c. LRU cache maxsize: 128 entries
+
+- **Phase 3: Configure Retry Parameters**
+  - 1. Set max_retries: self.max_retries = max_retries
+  - 2. Set base retry delay: self.retry_delay = 1 second
+  - 3. Actual delay uses exponential backoff: delay * (2 ** attempt)
+
+- **Phase 4: Setup LRU Caches**
+  - 1. Call self._setup_lru_caches()
+  - 2. Creates cached wrapper for get_file_info
+  - 3. LRU cache maxsize: 128 entries
 
 ## Interactions
 

@@ -72,7 +72,7 @@ class DriveService:
         - **utils.common.extract_drive_id**: URL parsing utility
         - **utils.common.format_file_size**: Size formatting utility
 
-    Algorithm (High-Level Workflow):
+    Algorithm:
         **Phase 1: Initialization**
             1. Store authenticated Drive API service
             2. Initialize cache dictionary and TTL settings
@@ -200,24 +200,27 @@ class DriveService:
                 increase latency on failures. Defaults to 3.
 
         Algorithm:
-            1. **Store Service Reference**:
-               a. Assign service parameter to self.service
-               b. Service provides access to all Drive API endpoints
-            
-            2. **Initialize Cache System**:
-               a. Create empty cache dictionary: self._cache = {}
-               b. Store TTL value: self._cache_ttl = cache_ttl
-               c. Cache stores (data, timestamp) tuples
-            
-            3. **Configure Retry Parameters**:
-               a. Set max_retries: self.max_retries = max_retries
-               b. Set base retry delay: self.retry_delay = 1 second
-               c. Actual delay uses exponential backoff: delay * (2 ** attempt)
-            
-            4. **Setup LRU Caches**:
-               a. Call self._setup_lru_caches()
-               b. Creates cached wrapper for get_file_info
-               c. LRU cache maxsize: 128 entries
+
+            **Phase 1: Store Service Reference**
+                1. Assign service parameter to self.service
+                2. Service provides access to all Drive API endpoints
+
+
+            **Phase 2: Initialize Cache System**
+                1. Create empty cache dictionary: self._cache = {}
+                2. Store TTL value: self._cache_ttl = cache_ttl
+                3. Cache stores (data, timestamp) tuples
+
+
+            **Phase 3: Configure Retry Parameters**
+                1. Set max_retries: self.max_retries = max_retries
+                2. Set base retry delay: self.retry_delay = 1 second
+                3. Actual delay uses exponential backoff: delay * (2 ** attempt)
+
+            **Phase 4: Setup LRU Caches**
+                1. Call self._setup_lru_caches()
+                2. Creates cached wrapper for get_file_info
+                3. LRU cache maxsize: 128 entries
 
         Interactions:
             - **googleapiclient.discovery.Resource**: Drive API service
@@ -256,7 +259,7 @@ class DriveService:
         self.retry_delay = 1
         self._setup_lru_caches()
     
-    def _setup_lru_caches(self):
+    def setup_lru_caches(self):
         """Setup LRU (Least Recently Used) caches for frequent operations.
 
         Creates a cached wrapper for get_file_info using functools.lru_cache
@@ -267,20 +270,21 @@ class DriveService:
             None: Creates self._cached_get_file_info as side effect.
 
         Algorithm:
-            1. **Define Cached Wrapper**:
-               a. Create inner function cached_get_file_info(file_id)
-               b. Function calls self.get_file_info(file_id, use_cache=False)
-               c. Bypasses time-based cache to avoid double-caching
-            
-            2. **Apply LRU Cache Decorator**:
-               a. Decorate function with @lru_cache(maxsize=128)
-               b. Maintains 128 most recently accessed file IDs
-               c. O(1) lookup performance for cached entries
-            
-            3. **Store Cached Function**:
-               a. Assign decorated function to self._cached_get_file_info
-               b. Used by get_file_info when use_cache=True
-               c. Provides fast access to frequently queried files
+
+            **Phase 1: Define Cached Wrapper**
+                1. Create inner function cached_get_file_info(file_id)
+                2. Function calls self.get_file_info(file_id, use_cache=False)
+                3. Bypasses time-based cache to avoid double-caching
+
+            **Phase 2: Apply LRU Cache Decorator**
+                1. Decorate function with @lru_cache(maxsize=128)
+                2. Maintains 128 most recently accessed file IDs
+                3. O(1) lookup performance for cached entries
+
+            **Phase 3: Store Cached Function**
+                1. Assign decorated function to self._cached_get_file_info
+                2. Used by get_file_info when use_cache=True
+                3. Provides fast access to frequently queried files
 
         Interactions:
             - **functools.lru_cache**: Provides LRU caching decorator
@@ -331,27 +335,30 @@ class DriveService:
                 dict or list for Drive operations).
 
         Algorithm:
-            1. **Check Key Existence**:
-               a. If key in self._cache dictionary:
-                  i. Proceed to validation
-               b. If key not in cache:
-                  i. Return None (cache miss)
-            
-            2. **Extract Cache Entry**:
-               a. Get tuple from cache: (data, timestamp)
-               b. data: The cached response data
-               c. timestamp: datetime when cached
-            
-            3. **Validate Timestamp**:
-               a. Calculate age: datetime.now() - timestamp
-               b. Compare age to self._cache_ttl
-               c. If age < cache_ttl:
-                  i. Data still valid
-                  ii. Return data
-               d. If age >= cache_ttl:
-                  i. Data expired
-                  ii. Delete cache entry
-                  iii. Return None (expired)
+
+            **Phase 1: Check Key Existence**
+                1. If key in self._cache dictionary:
+                2. Proceed to validation
+                3. If key not in cache:
+                4. Return None (cache miss)
+
+
+            **Phase 2: Extract Cache Entry**
+                1. Get tuple from cache: (data, timestamp)
+                2. data: The cached response data
+                3. timestamp: datetime when cached
+
+
+            **Phase 3: Validate Timestamp**
+                1. Calculate age: datetime.now() - timestamp
+                2. Compare age to self._cache_ttl
+                3. If age < cache_ttl:
+                4. Data still valid
+                    a. Return data
+                5. If age >= cache_ttl:
+                6. Data expired
+                    a. Delete cache entry
+                    b. Return None (expired)
 
         Interactions:
             - **datetime.now()**: Gets current timestamp
@@ -384,7 +391,7 @@ class DriveService:
             del self._cache[key]
         return None
     
-    def _set_cache(self, key, data):
+    def set_cache(self, key, data):
         """Store data in cache with current timestamp.
 
         Saves operation result in cache with timestamp for TTL validation.
@@ -400,13 +407,13 @@ class DriveService:
             None: Updates self._cache as side effect.
 
         Algorithm:
-            1. **Create Cache Entry**:
-               a. Get current timestamp: datetime.now()
-               b. Create tuple: (data, timestamp)
-            
-            2. **Store in Cache**:
-               a. Assign tuple to self._cache[key]
-               b. Overwrites existing entry if present
+            **Phase 1: Create Cache Entry**:
+               1. Get current timestamp: datetime.now()
+               2. Create tuple: (data, timestamp)
+
+            **Phase 2: Store in Cache**:
+               1. Assign tuple to self._cache[key]
+               2. Overwrites existing entry if present
 
         Interactions:
             - **datetime.now()**: Timestamp for TTL calculation
@@ -429,7 +436,7 @@ class DriveService:
         """
         self._cache[key] = (data, datetime.now())
     
-    def _invalidate_cache(self, folder_id=None):
+    def invalidate_cache(self, folder_id=None):
         """Clear cached data for specific folder or entire cache.
 
         Removes cache entries to maintain consistency after mutations
@@ -445,26 +452,29 @@ class DriveService:
             None: Modifies self._cache and LRU cache as side effects.
 
         Algorithm:
-            1. **Check Invalidation Scope**:
-               a. If folder_id provided:
-                  i. Selective invalidation (folder-specific)
-               b. If folder_id is None:
-                  i. Full invalidation (entire cache)
-            
-            2. **Selective Invalidation** (if folder_id):
-               a. Find keys containing folder_id
-               b. Create list: keys_to_remove = [k for k in cache if folder_id in k]
-               c. Delete each matching key from cache
-               d. Try to clear LRU cache:
-                  i. Check if _cached_get_file_info exists
-                  ii. Call cache_clear() on LRU cache
-                  iii. Catch and ignore errors (defensive)
-            
-            3. **Full Invalidation** (if folder_id is None):
-               a. Call self._cache.clear()
-               b. Removes all cache entries
-               c. Clear LRU cache if exists:
-                  i. Call _cached_get_file_info.cache_clear()
+
+            **Phase 1: Check Invalidation Scope**
+                1. If folder_id provided:
+                2. Selective invalidation (folder-specific)
+                3. If folder_id is None:
+                4. Full invalidation (entire cache)
+
+
+            **Phase 2: Selective Invalidation (if folder_id)**
+                1. Find keys containing folder_id
+                2. Create list: keys_to_remove = [k for k in cache if folder_id in k]
+                3. Delete each matching key from cache
+                4. Try to clear LRU cache:
+                5. Check if _cached_get_file_info exists
+                    a. Call cache_clear() on LRU cache
+                    b. Catch and ignore errors (defensive)
+
+
+            **Phase 3: Full Invalidation (if folder_id is None)**
+                1. Call self._cache.clear()
+                2. Removes all cache entries
+                3. Clear LRU cache if exists:
+                4. Call _cached_get_file_info.cache_clear()
 
         Interactions:
             - **dict.clear()**: Clears dictionary
@@ -505,7 +515,7 @@ class DriveService:
             if hasattr(self, '_cached_get_file_info'):
                 self._cached_get_file_info.cache_clear()
     
-    def _retry_request(self, request_func, operation_name="operation"):
+    def retry_request(self, request_func, operation_name="operation"):
         """Execute API request with exponential backoff retry logic.
 
         Attempts API request multiple times with increasing delays on
@@ -524,38 +534,43 @@ class DriveService:
                 all retries exhausted. Return type depends on API endpoint.
 
         Algorithm:
-            1. **Retry Loop**:
-               a. For attempt in range(max_retries):
-                  i. Attempt index: 0 to max_retries-1
-            
-            2. **Try Request Execution**:
-               a. Enter try block
-               b. Call request_func() to execute API request
-               c. If successful, return result immediately
-            
-            3. **Handle Errors**:
-               a. Catch TimeoutError, HttpError, or generic Exception
-               b. Determine if error is retryable:
-                  i. TimeoutError: Always retryable
-                  ii. HttpError with status 429 (rate limit): Retryable
-                  iii. HttpError with status 500/503 (server error): Retryable
-                  iv. Other HttpError: Not retryable
-                  v. Other Exception: Retryable if not last attempt
-            
-            4. **Retry Decision**:
-               a. If should_retry AND not last attempt:
-                  i. Calculate delay: self.retry_delay * (2 ** attempt)
-                      - Attempt 0: 1s, Attempt 1: 2s, Attempt 2: 4s, etc.
-                  ii. Print retry message with operation, attempt, delay
-                  iii. Sleep for calculated delay
-                  iv. Continue to next iteration
-               b. If final attempt or non-retryable:
-                  i. Print final error message
-                  ii. Return None (failure)
-            
-            5. **Exhausted Retries**:
-               a. If loop completes without return
-               b. Return None (all retries failed)
+
+            **Phase 1: Retry Loop**
+                1. For attempt in range(max_retries):
+                2. Attempt index: 0 to max_retries-1
+
+
+            **Phase 2: Try Request Execution**
+                1. Enter try block
+                2. Call request_func() to execute API request
+                3. If successful, return result immediately
+
+
+            **Phase 3: Handle Errors**
+                1. Catch TimeoutError, HttpError, or generic Exception
+                2. Determine if error is retryable:
+                3. TimeoutError: Always retryable
+                    a. HttpError with status 429 (rate limit): Retryable
+                    b. HttpError with status 500/503 (server error): Retryable
+                    c. Other HttpError: Not retryable
+                4. Other Exception: Retryable if not last attempt
+
+
+            **Phase 4: Retry Decision**
+                1. If should_retry AND not last attempt:
+                2. Calculate delay: self.retry_delay * (2 ** attempt)
+                        - Attempt 0: 1s, Attempt 1: 2s, Attempt 2: 4s, etc.
+                    a. Print retry message with operation, attempt, delay
+                    b. Sleep for calculated delay
+                    c. Continue to next iteration
+                3. If final attempt or non-retryable:
+                4. Print final error message
+                    a. Return None (failure)
+
+
+            **Phase 5: Exhausted Retries**
+                1. If loop completes without return
+                2. Return None (all retries failed)
 
         Interactions:
             - **time.sleep()**: Implements backoff delay
@@ -610,7 +625,7 @@ class DriveService:
                     return None
         return None
     
-    def _execute_file_list_query(self, query, page_size=100, page_token=None, fields="nextPageToken, files(id, name, mimeType, modifiedTime, size, owners)", order_by="folder,name"):
+    def execute_file_list_query(self, query, page_size=100, page_token=None, fields="nextPageToken, files(id, name, mimeType, modifiedTime, size, owners)", order_by="folder,name"):
         """Execute Drive API files.list query with retry logic.
 
         Wrapper for files().list() API endpoint with configurable parameters
@@ -638,21 +653,21 @@ class DriveService:
                 all retries. Structure: {'files': [...], 'nextPageToken': '...'}.
 
         Algorithm:
-            1. **Define Request Function**:
-               a. Create make_request() closure
-               b. Calls self.service.files().list() with parameters:
-                  i. q=query (filter condition)
-                  ii. pageSize=page_size (results per page)
-                  iii. pageToken=page_token (pagination)
-                  iv. fields=fields (response fields)
-                  v. orderBy=order_by (sort order)
-               c. Calls .execute() to perform request
-               d. Returns API response dictionary
-            
-            2. **Execute with Retry**:
-               a. Call self._retry_request(make_request, operation_name)
-               b. operation_name includes truncated query for logging
-               c. Returns result or None on failure
+            **Phase 1: Define Request Function**:
+               1. Create make_request() closure
+               2. Calls self.service.files().list() with parameters:
+                  a. q=query (filter condition)
+                  b. pageSize=page_size (results per page)
+                  c. pageToken=page_token (pagination)
+                  d. fields=fields (response fields)
+                  e. orderBy=order_by (sort order)
+               2. Calls .execute() to perform request
+               3. Returns API response dictionary
+
+            **Phase 2: Execute with Retry**:
+               1. Call self._retry_request(make_request, operation_name)
+               2. operation_name includes truncated query for logging
+               3. Returns result or None on failure
 
         Interactions:
             - **service.files().list()**: Drive API list endpoint
@@ -726,39 +741,39 @@ class DriveService:
                 Returns None if API request fails after retries.
 
         Algorithm:
-            1. **Generate Cache Key**:
-               a. Format: "files_{folder_id}_{page_size}_{page_token}"
-               b. Example: "files_root_100_None"
-            
-            2. **Check Cache** (if use_cache=True):
-               a. Call self._get_cached(cache_key)
-               b. If cached data exists and not expired:
-                  i. Print cache hit message
-                  ii. Return cached data immediately
-            
-            3. **Build Query**:
-               a. Format: "'{folder_id}' in parents and trashed=false"
-               b. Filters: folder contains file, not in trash
-            
-            4. **Execute API Request**:
-               a. Call _execute_file_list_query() with query and parameters
-               b. Returns raw API response or None
-            
-            5. **Process Response**:
-               a. If result is None:
-                  i. API call failed
-                  ii. Return None
-               b. If result is dict:
-                  i. Extract 'files' list (empty list if missing)
-                  ii. Extract 'nextPageToken' (None if last page)
-                  iii. Create formatted_result dict
-            
-            6. **Update Cache**:
-               a. Call _set_cache(cache_key, formatted_result)
-               b. Stores result with current timestamp
-            
-            7. **Return Result**:
-               a. Return formatted_result dictionary
+            **Phase 1: Generate Cache Key**:
+               1. Format: "files_{folder_id}_{page_size}_{page_token}"
+               2. Example: "files_root_100_None"
+
+            **Phase 2: Check Cache** (if use_cache=True):
+               1. Call self._get_cached(cache_key)
+               2. If cached data exists and not expired:
+                  a. Print cache hit message
+                  b. Return cached data immediately
+
+            **Phase 3: Build Query**:
+               1. Format: "'{folder_id}' in parents and trashed=false"
+               2. Filters: folder contains file, not in trash
+
+            **Phase 4: Execute API Request**:
+               1. Call _execute_file_list_query() with query and parameters
+               2. Returns raw API response or None
+
+            **Phase 5: Process Response**:
+               1. If result is None:
+                  a. API call failed
+                  b. Return None
+               2. If result is dict:
+                  a. Extract 'files' list (empty list if missing)
+                  b. Extract 'nextPageToken' (None if last page)
+                  c. Create formatted_result dict
+
+            **Phase 6: Update Cache**:
+               1. Call _set_cache(cache_key, formatted_result)
+               2. Stores result with current timestamp
+
+            **Phase 7: Return Result**:
+               1. Return formatted_result dictionary
 
         Interactions:
             - **_get_cached()**: Checks cache
@@ -845,38 +860,38 @@ class DriveService:
                 Returns empty list [] if no matches or API failure.
 
         Algorithm:
-            1. **Generate Cache Key**:
-               a. Format: "search_{query_text}_{folder_id}"
-               b. Example: "search_assignment_None"
-            
-            2. **Check Cache** (if use_cache=True):
-               a. Call self._get_cached(cache_key)
-               b. If cached, return immediately
-            
-            3. **Build Search Query**:
-               a. Base: "name contains '{query_text}' and trashed=false"
-               b. If folder_id provided:
-                  i. Append: " and '{folder_id}' in parents"
-                  ii. Limits search to folder
-            
-            4. **Execute Search**:
-               a. Call _execute_file_list_query() with:
-                  i. query: search criteria
-                  ii. page_size: 50 (smaller for searches)
-                  iii. fields: minimal set (id, name, mimeType, modifiedTime, parents)
-               b. Returns API response or None
-            
-            5. **Extract Files**:
-               a. If result is dict:
-                  i. Extract files: result.get('files', [])
-               b. If result is None:
-                  i. files = [] (empty list)
-            
-            6. **Update Cache** (if use_cache and files found):
-               a. Call _set_cache(cache_key, files)
-            
-            7. **Return Results**:
-               a. Return files list (may be empty)
+            **Phase 1: Generate Cache Key**:
+               1. Format: "search_{query_text}_{folder_id}"
+               2. Example: "search_assignment_None"
+
+            **Phase 2: Check Cache** (if use_cache=True):
+               1. Call self._get_cached(cache_key)
+               2. If cached, return immediately
+
+            **Phase 3: Build Search Query**:
+               1. Base: "name contains '{query_text}' and trashed=false"
+               2. If folder_id provided:
+                  a. Append: " and '{folder_id}' in parents"
+                  b. Limits search to folder
+
+            **Phase 4: Execute Search**:
+               1. Call _execute_file_list_query() with:
+                  a. query: search criteria
+                  b. page_size: 50 (smaller for searches)
+                  c. fields: minimal set (id, name, mimeType, modifiedTime, parents)
+               2. Returns API response or None
+
+            **Phase 5: Extract Files**:
+               1. If result is dict:
+                  a. Extract files: result.get('files', [])
+               2. If result is None:
+                  a. files = [] (empty list)
+
+            **Phase 6: Update Cache** (if use_cache and files found):
+               1. Call _set_cache(cache_key, files)
+
+            **Phase 7: Return Results**:
+               1. Return files list (may be empty)
 
         Interactions:
             - **_get_cached()**: Checks cache
@@ -957,37 +972,44 @@ class DriveService:
                 Returns None if file not found or API error.
 
         Algorithm:
-            1. **Try LRU Cache** (if use_cache=True):
-               a. Check if _cached_get_file_info exists
-               b. Try calling _cached_get_file_info(file_id)
-               c. If successful, return cached result
-               d. If exception, continue to next step
-            
-            2. **Generate Cache Key**:
-               a. Format: "fileinfo_{file_id}"
-               b. Example: "fileinfo_1abc...xyz"
-            
-            3. **Check Time-Based Cache** (if use_cache=True):
-               a. Call self._get_cached(cache_key)
-               b. If cached and not expired, return data
-            
-            4. **Define Request Function**:
-               a. Create make_request() closure
-               b. Calls service.files().get() with:
-                  i. fileId=file_id
-                  ii. fields: comprehensive field list
-               c. Returns file metadata dictionary
-            
-            5. **Execute with Retry**:
-               a. Call _retry_request(make_request, operation_name)
-               b. Returns file dict or None on failure
-            
-            6. **Update Cache** (if result not None):
-               a. Call _set_cache(cache_key, file)
-               b. Stores with current timestamp
-            
-            7. **Return Result**:
-               a. Return file dictionary or None
+
+            **Phase 1: Try LRU Cache (if use_cache=True)**
+                1. Check if _cached_get_file_info exists
+                2. Try calling _cached_get_file_info(file_id)
+                3. If successful, return cached result
+                4. If exception, continue to next step
+
+
+            **Phase 2: Generate Cache Key**
+                1. Format: "fileinfo_{file_id}"
+                2. Example: "fileinfo_1abc...xyz"
+
+
+            **Phase 3: Check Time-Based Cache (if use_cache=True)**
+                1. Call self._get_cached(cache_key)
+                2. If cached and not expired, return data
+
+
+            **Phase 4: Define Request Function**
+                1. Create make_request() closure
+                2. Calls service.files().get() with:
+                3. fileId=file_id
+                    a. fields: comprehensive field list
+                4. Returns file metadata dictionary
+
+
+            **Phase 5: Execute with Retry**
+                1. Call _retry_request(make_request, operation_name)
+                2. Returns file dict or None on failure
+
+
+            **Phase 6: Update Cache (if result not None)**
+                1. Call _set_cache(cache_key, file)
+                2. Stores with current timestamp
+
+
+            **Phase 7: Return Result**
+                1. Return file dictionary or None
 
         Interactions:
             - **_cached_get_file_info**: LRU cached wrapper
@@ -1079,27 +1101,32 @@ class DriveService:
                 Returns (None, None) if parsing fails or file not found.
 
         Algorithm:
-            1. **Extract File ID**:
-               a. Call extract_drive_id(link)
-               b. Handles URL parsing with regex patterns
-               c. Returns file ID or None
-            
-            2. **Validate Extraction**:
-               a. If file_id is None:
-                  i. Print error message with link
-                  ii. Return (None, None)
-            
-            3. **Get File Info**:
-               a. Call self.get_file_info(file_id)
-               b. Returns file metadata dict or None
-            
-            4. **Validate Info**:
-               a. If info is None:
-                  i. Print error message with file_id
-                  ii. Return (None, None)
-            
-            5. **Return Success**:
-               a. Return tuple (file_id, info)
+
+            **Phase 1: Extract File ID**
+                1. Call extract_drive_id(link)
+                2. Handles URL parsing with regex patterns
+                3. Returns file ID or None
+
+
+            **Phase 2: Validate Extraction**
+                1. If file_id is None:
+                2. Print error message with link
+                    a. Return (None, None)
+
+
+            **Phase 3: Get File Info**
+                1. Call self.get_file_info(file_id)
+                2. Returns file metadata dict or None
+
+
+            **Phase 4: Validate Info**
+                1. If info is None:
+                2. Print error message with file_id
+                    a. Return (None, None)
+
+
+            **Phase 5: Return Success**
+                1. Return tuple (file_id, info)
 
         Interactions:
             - **utils.common.extract_drive_id()**: URL parsing utility
@@ -1149,7 +1176,7 @@ class DriveService:
         
         return file_id, info
     
-    def _execute_file_mutation(self, operation_name, request_func, parent_id=None):
+    def execute_file_mutation(self, operation_name, request_func, parent_id=None):
         """Execute file mutation operation with retry and cache invalidation.
 
         Wrapper for write operations (create, update, delete) that handles
@@ -1169,18 +1196,21 @@ class DriveService:
                 Return type depends on operation (typically dict).
 
         Algorithm:
-            1. **Execute with Retry**:
-               a. Call _retry_request(request_func, operation_name)
-               b. Returns result or None on failure
-            
-            2. **Invalidate Cache** (if successful and parent_id):
-               a. If result is not None AND parent_id provided:
-                  i. Call _invalidate_cache(parent_id)
-                  ii. Clears cache entries for affected folder
-                  iii. Maintains consistency with Drive state
-            
-            3. **Return Result**:
-               a. Return result (success) or None (failure)
+
+            **Phase 1: Execute with Retry**
+                1. Call _retry_request(request_func, operation_name)
+                2. Returns result or None on failure
+
+
+            **Phase 2: Invalidate Cache (if successful and parent_id)**
+                1. If result is not None AND parent_id provided:
+                2. Call _invalidate_cache(parent_id)
+                    a. Clears cache entries for affected folder
+                    b. Maintains consistency with Drive state
+
+
+            **Phase 3: Return Result**
+                1. Return result (success) or None (failure)
 
         Interactions:
             - **_retry_request()**: Retry wrapper
@@ -1240,23 +1270,25 @@ class DriveService:
                 Returns None if creation fails.
 
         Algorithm:
-            1. **Define Request Function**:
-               a. Create make_request() closure
-               b. Build file_metadata dictionary:
-                  i. name: folder_name
-                  ii. mimeType: 'application/vnd.google-apps.folder'
-                  iii. parents: [parent_id]
-               c. Call service.files().create() with metadata
-               d. Specify fields: 'id, name'
-               e. Execute request
-               f. Returns created folder dict
-            
-            2. **Execute Mutation**:
-               a. Call _execute_file_mutation() with:
-                  i. operation_name: "create_folder({folder_name})"
-                  ii. request_func: make_request
-                  iii. parent_id: parent_id (for cache invalidation)
-               b. Returns result or None
+
+            **Phase 1: Define Request Function**
+                1. Create make_request() closure
+                2. Build file_metadata dictionary:
+                3. name: folder_name
+                    a. mimeType: 'application/vnd.google-apps.folder'
+                    b. parents: [parent_id]
+                4. Call service.files().create() with metadata
+                5. Specify fields: 'id, name'
+                6. Execute request
+                7. Returns created folder dict
+
+
+            **Phase 2: Execute Mutation**
+                1. Call _execute_file_mutation() with:
+                2. operation_name: "create_folder({folder_name})"
+                    a. request_func: make_request
+                    b. parent_id: parent_id (for cache invalidation)
+                3. Returns result or None
 
         Interactions:
             - **service.files().create()**: Drive API create endpoint
@@ -1329,52 +1361,62 @@ class DriveService:
                 Returns None on upload failure.
 
         Algorithm:
-            1. **Try Upload Process**:
-               a. Enter try block for error handling
-            
-            2. **Determine File Name**:
-               a. If file_name not provided:
-                  i. Import os module
-                  ii. Extract basename: os.path.basename(file_path)
-                  iii. Use as file_name
-            
-            3. **Build Metadata**:
-               a. Create file_metadata dictionary:
-                  i. name: file_name
-                  ii. parents: [parent_id]
-            
-            4. **Create Media Upload**:
-               a. Instantiate MediaFileUpload(file_path, resumable=True)
-               b. resumable=True enables chunked upload
-               c. Automatically detects MIME type
-            
-            5. **Create Upload Request**:
-               a. Call service.files().create() with:
-                  i. body: file_metadata
-                  ii. media_body: media object
-                  iii. fields: comprehensive field list
-               b. Returns upload request object
-            
-            6. **Upload with Progress**:
-               a. Initialize response = None
-               b. While response is None:
-                  i. Call request.next_chunk()
-                  ii. Returns (status, response)
-                  iii. If status exists and progress_callback:
-                      - Call progress_callback(status.resumable_progress, status.total_size)
-                  iv. Continue until upload complete
-            
-            7. **Invalidate Cache**:
-               a. Call _invalidate_cache(parent_id)
-               b. Updates parent folder cache
-            
-            8. **Return Response**:
-               a. Return uploaded file info
-            
-            9. **Handle Errors**:
-               a. Catch any Exception
-               b. Print error message
-               c. Return None
+
+            **Phase 1: Try Upload Process**
+                1. Enter try block for error handling
+
+
+            **Phase 2: Determine File Name**
+                1. If file_name not provided:
+                2. Import os module
+                    a. Extract basename: os.path.basename(file_path)
+                    b. Use as file_name
+
+
+            **Phase 3: Build Metadata**
+                1. Create file_metadata dictionary:
+                2. name: file_name
+                    a. parents: [parent_id]
+
+
+            **Phase 4: Create Media Upload**
+                1. Instantiate MediaFileUpload(file_path, resumable=True)
+                2. resumable=True enables chunked upload
+                3. Automatically detects MIME type
+
+
+            **Phase 5: Create Upload Request**
+                1. Call service.files().create() with:
+                2. body: file_metadata
+                    a. media_body: media object
+                    b. fields: comprehensive field list
+                3. Returns upload request object
+
+
+            **Phase 6: Upload with Progress**
+                1. Initialize response = None
+                2. While response is None:
+                3. Call request.next_chunk()
+                    a. Returns (status, response)
+                    b. If status exists and progress_callback:
+                        - Call progress_callback(status.resumable_progress, status.total_size)
+                    c. Continue until upload complete
+
+
+            **Phase 7: Invalidate Cache**
+                1. Call _invalidate_cache(parent_id)
+                2. Updates parent folder cache
+
+
+            **Phase 8: Return Response**
+                1. Return uploaded file info
+
+
+            **Phase 9: Handle Errors**
+                1. Catch any Exception
+                2. Print error message
+                3. Return None
+
 
         Interactions:
             - **os.path.basename()**: Extracts filename
@@ -1475,38 +1517,45 @@ class DriveService:
                 Returns None on update failure.
 
         Algorithm:
-            1. **Try Update Process**:
-               a. Enter try block for error handling
-            
-            2. **Build Metadata**:
-               a. Create empty file_metadata dictionary
-               b. If new_name provided:
-                  i. Add to metadata: file_metadata['name'] = new_name
-            
-            3. **Create Media Upload**:
-               a. Instantiate MediaFileUpload(file_path, resumable=True)
-               b. Loads new file content
-            
-            4. **Execute Update**:
-               a. Call service.files().update() with:
-                  i. fileId: file_id
-                  ii. body: file_metadata (name if provided)
-                  iii. media_body: media object
-                  iv. fields: 'id, name, mimeType, modifiedTime'
-               b. Execute request
-               c. Returns updated file dict
-            
-            5. **Invalidate Cache**:
-               a. Call _invalidate_cache(file_id)
-               b. Clears cached file info
-            
-            6. **Return Result**:
-               a. Return updated_file dictionary
-            
-            7. **Handle Errors**:
-               a. Catch any Exception
-               b. Print error message
-               c. Return None
+
+            **Phase 1: Try Update Process**
+                1. Enter try block for error handling
+
+
+            **Phase 2: Build Metadata**
+                1. Create empty file_metadata dictionary
+                2. If new_name provided:
+                3. Add to metadata: file_metadata['name'] = new_name
+
+
+            **Phase 3: Create Media Upload**
+                1. Instantiate MediaFileUpload(file_path, resumable=True)
+                2. Loads new file content
+
+
+            **Phase 4: Execute Update**
+                1. Call service.files().update() with:
+                2. fileId: file_id
+                    a. body: file_metadata (name if provided)
+                    b. media_body: media object
+                    c. fields: 'id, name, mimeType, modifiedTime'
+                3. Execute request
+                4. Returns updated file dict
+
+
+            **Phase 5: Invalidate Cache**
+                1. Call _invalidate_cache(file_id)
+                2. Clears cached file info
+
+
+            **Phase 6: Return Result**
+                1. Return updated_file dictionary
+
+
+            **Phase 7: Handle Errors**
+                1. Catch any Exception
+                2. Print error message
+                3. Return None
 
         Interactions:
             - **MediaFileUpload**: Handles file upload
@@ -1576,38 +1625,46 @@ class DriveService:
                 Returns None if download fails or file is binary.
 
         Algorithm:
-            1. **Try Download Process**:
-               a. Enter try block for error handling
-            
-            2. **Create Download Request**:
-               a. Call service.files().get_media(fileId=file_id)
-               b. Returns media download request
-            
-            3. **Setup Download Buffer**:
-               a. Create BytesIO buffer: file = io.BytesIO()
-               b. In-memory buffer for file content
-            
-            4. **Create Downloader**:
-               a. Instantiate MediaIoBaseDownload(file, request)
-               b. Handles chunked download
-            
-            5. **Download Loop**:
-               a. Set done = False
-               b. While done is False:
-                  i. Call downloader.next_chunk()
-                  ii. Returns (status, done)
-                  iii. status contains progress info
-                  iv. done=True when complete
-            
-            6. **Decode Content**:
-               a. Get bytes: file.getvalue()
-               b. Decode: .decode('utf-8')
-               c. Return decoded string
-            
-            7. **Handle Errors**:
-               a. Catch any Exception
-               b. Print error message
-               c. Return None
+
+            **Phase 1: Try Download Process**
+                1. Enter try block for error handling
+
+
+            **Phase 2: Create Download Request**
+                1. Call service.files().get_media(fileId=file_id)
+                2. Returns media download request
+
+
+            **Phase 3: Setup Download Buffer**
+                1. Create BytesIO buffer: file = io.BytesIO()
+                2. In-memory buffer for file content
+
+
+            **Phase 4: Create Downloader**
+                1. Instantiate MediaIoBaseDownload(file, request)
+                2. Handles chunked download
+
+
+            **Phase 5: Download Loop**
+                1. Set done = False
+                2. While done is False:
+                3. Call downloader.next_chunk()
+                    a. Returns (status, done)
+                    b. status contains progress info
+                    c. done=True when complete
+
+
+            **Phase 6: Decode Content**
+                1. Get bytes: file.getvalue()
+                2. Decode: .decode('utf-8')
+                3. Return decoded string
+
+
+            **Phase 7: Handle Errors**
+                1. Catch any Exception
+                2. Print error message
+                3. Return None
+
 
         Interactions:
             - **service.files().get_media()**: Drive download API
@@ -1691,28 +1748,32 @@ class DriveService:
                 Returns None if not found.
 
         Algorithm:
-            1. **Build Query**:
-               a. Format: "name = '{name}' and '{parent_id}' in parents and trashed=false"
-               b. Exact name match (case-sensitive)
-               c. Must be in specified parent
-               d. Must not be trashed
-            
-            2. **Execute Query**:
-               a. Call service.files().list() with:
-                  i. q: query string
-                  ii. pageSize: 1 (only need first match)
-                  iii. fields: minimal set
-               b. Execute request
-               c. Returns results dictionary
-            
-            3. **Extract Files**:
-               a. Get files list: results.get('files', [])
-            
-            4. **Return Result**:
-               a. If files list not empty:
-                  i. Return files[0] (first match)
-               b. If files list empty:
-                  i. Return None (not found)
+
+            **Phase 1: Build Query**
+                1. Format: "name = '{name}' and '{parent_id}' in parents and trashed=false"
+                2. Exact name match (case-sensitive)
+                3. Must be in specified parent
+                4. Must not be trashed
+
+
+            **Phase 2: Execute Query**
+                1. Call service.files().list() with:
+                2. q: query string
+                    a. pageSize: 1 (only need first match)
+                    b. fields: minimal set
+                3. Execute request
+                4. Returns results dictionary
+
+
+            **Phase 3: Extract Files**
+                1. Get files list: results.get('files', [])
+
+
+            **Phase 4: Return Result**
+                1. If files list not empty:
+                2. Return files[0] (first match)
+                3. If files list empty:
+                4. Return None (not found)
 
         Interactions:
             - **service.files().list()**: Drive query API
@@ -1770,33 +1831,38 @@ class DriveService:
                 Returns None if move fails.
 
         Algorithm:
-            1. **Define Request Function**:
-               a. Create make_request() closure
-               b. Get current parents:
-                  i. Call service.files().get(fileId, fields='parents')
-                  ii. Extract parents list
-                  iii. Join with commas: ",".join(parents)
-               c. Update file:
-                  i. Call service.files().update()
-                  ii. addParents: new_parent_id
-                  iii. removeParents: previous_parents (comma-separated)
-                  iv. fields: 'id, parents'
-               d. Execute and return
-            
-            2. **Execute with Retry**:
-               a. Call _retry_request(make_request, operation_name)
-               b. Returns updated_file or None
-            
-            3. **Invalidate Caches** (if successful):
-               a. If updated_file not None:
-                  i. Get fresh parent list
-                  ii. Invalidate old parents:
-                      - Get file info to find old parents
-                      - Invalidate each old parent cache
-                  iii. Invalidate new parent: _invalidate_cache(new_parent_id)
-            
-            4. **Return Result**:
-               a. Return updated_file (success) or None (failure)
+
+            **Phase 1: Define Request Function**
+                1. Create make_request() closure
+                2. Get current parents:
+                3. Call service.files().get(fileId, fields='parents')
+                    a. Extract parents list
+                    b. Join with commas: ",".join(parents)
+                4. Update file:
+                5. Call service.files().update()
+                    a. addParents: new_parent_id
+                    b. removeParents: previous_parents (comma-separated)
+                    c. fields: 'id, parents'
+                6. Execute and return
+
+
+            **Phase 2: Execute with Retry**
+                1. Call _retry_request(make_request, operation_name)
+                2. Returns updated_file or None
+
+
+            **Phase 3: Invalidate Caches (if successful)**
+                1. If updated_file not None:
+                2. Get fresh parent list
+                    a. Invalidate old parents:
+                        - Get file info to find old parents
+                        - Invalidate each old parent cache
+                    b. Invalidate new parent: _invalidate_cache(new_parent_id)
+
+
+            **Phase 4: Return Result**
+                1. Return updated_file (success) or None (failure)
+
 
         Interactions:
             - **service.files().get()**: Get current parents
@@ -1873,27 +1939,31 @@ class DriveService:
                 Returns None if rename fails.
 
         Algorithm:
-            1. **Define Request Function**:
-               a. Create make_request() closure
-               b. Build metadata: file_metadata = {'name': new_name}
-               c. Call service.files().update() with:
-                  i. fileId: file_id
-                  ii. body: file_metadata
-                  iii. fields: 'id, name, parents'
-               d. Execute and return
-            
-            2. **Execute with Retry**:
-               a. Call _retry_request(make_request, operation_name)
-               b. Returns updated_file or None
-            
-            3. **Invalidate Caches** (if successful):
-               a. If updated_file not None:
-                  i. For each parent in updated_file['parents']:
-                      - Call _invalidate_cache(parent)
-                  ii. Call _invalidate_cache(file_id)
-            
-            4. **Return Result**:
-               a. Return updated_file (success) or None (failure)
+
+            **Phase 1: Define Request Function**
+                1. Create make_request() closure
+                2. Build metadata: file_metadata = {'name': new_name}
+                3. Call service.files().update() with:
+                4. fileId: file_id
+                    a. body: file_metadata
+                    b. fields: 'id, name, parents'
+                5. Execute and return
+
+
+            **Phase 2: Execute with Retry**
+                1. Call _retry_request(make_request, operation_name)
+                2. Returns updated_file or None
+
+
+            **Phase 3: Invalidate Caches (if successful)**
+                1. If updated_file not None:
+                2. For each parent in updated_file['parents']:
+                3. Call _invalidate_cache(parent)
+                4. Call _invalidate_cache(file_id)
+
+
+            **Phase 4: Return Result**
+                1. Return updated_file (success) or None (failure)
 
         Interactions:
             - **service.files().update()**: Drive rename API
@@ -1953,33 +2023,41 @@ class DriveService:
             bool: True if deleted successfully, False if deletion failed.
 
         Algorithm:
-            1. **Get File Info First**:
-               a. Call get_file_info(file_id, use_cache=False)
-               b. Need parent info for cache invalidation
-               c. Store in file_info
-            
-            2. **Define Request Function**:
-               a. Create make_request() closure
-               b. Call service.files().delete(fileId=file_id)
-               c. Execute request (returns None on success)
-               d. Return True to indicate success
-            
-            3. **Execute with Retry**:
-               a. Call _retry_request(make_request, operation_name)
-               b. Returns True or None
-               c. Store in success variable
-            
-            4. **Invalidate Caches** (if successful):
-               a. If success is True:
-                  i. If file_info exists and has 'parents':
-                      - For each parent in file_info['parents']:
-                        - Call _invalidate_cache(parent)
-                  ii. Call _invalidate_cache(file_id)
-                  iii. Return True
-            
-            5. **Return Failure**:
-               a. If success is None or False:
-                  i. Return False
+
+            **Phase 1: Get File Info First**
+                1. Call get_file_info(file_id, use_cache=False)
+                2. Need parent info for cache invalidation
+                3. Store in file_info
+
+
+            **Phase 2: Define Request Function**
+                1. Create make_request() closure
+                2. Call service.files().delete(fileId=file_id)
+                3. Execute request (returns None on success)
+                4. Return True to indicate success
+
+
+            **Phase 3: Execute with Retry**
+                1. Call _retry_request(make_request, operation_name)
+                2. Returns True or None
+                3. Store in success variable
+
+
+            **Phase 4: Invalidate Caches (if successful)**
+                1. If success is True:
+                2. If file_info exists and has 'parents':
+                            - For each parent in file_info['parents']:
+                            - Call _invalidate_cache(parent)
+                    a. Call _invalidate_cache(file_id)
+                    b. Return True
+
+
+            **Phase 5: Return Failure**
+                1. If success is None or False:
+                2. Return False
+
+
+
 
         Interactions:
             - **get_file_info()**: Get parent info
@@ -2060,39 +2138,46 @@ class DriveService:
                 Returns None if max_depth reached, empty list if no subfolders.
 
         Algorithm:
-            1. **Check Depth Limit**:
-               a. If current_depth >= max_depth:
-                  i. Return None (depth limit reached)
-            
-            2. **Build Query**:
-               a. Format: "'{folder_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
-               b. Filters: in folder, is folder type, not trashed
-            
-            3. **Execute Query**:
-               a. Call _execute_file_list_query() with:
-                  i. query: folder filter
-                  ii. page_size: 100
-                  iii. fields: 'files(id, name)' (minimal)
-                  iv. order_by: 'name' (alphabetical)
-               b. Returns result or None
-            
-            4. **Extract Folders**:
-               a. If result is dict:
-                  i. Get folders: result.get('files', [])
-               b. If result is None:
-                  i. folders = [] (empty list)
-            
-            5. **Recurse for Children**:
-               a. For each folder in folders:
-                  i. Recursively call get_folder_tree() with:
-                      - folder_id: folder['id']
-                      - max_depth: max_depth (unchanged)
-                      - current_depth: current_depth + 1
-                  ii. Store result in folder['children']
-                  iii. Will be list or None
-            
-            6. **Return Tree**:
-               a. Return folders list with populated children
+
+            **Phase 1: Check Depth Limit**
+                1. If current_depth >= max_depth:
+                2. Return None (depth limit reached)
+
+
+            **Phase 2: Build Query**
+                1. Format: "'{folder_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"    
+                2. Filters: in folder, is folder type, not trashed
+
+
+            **Phase 3: Execute Query**
+                1. Call _execute_file_list_query() with:
+                2. query: folder filter
+                    a. page_size: 100
+                    b. fields: 'files(id, name)' (minimal)
+                    c. order_by: 'name' (alphabetical)
+                3. Returns result or None
+
+
+            **Phase 4: Extract Folders**
+                1. If result is dict:
+                2. Get folders: result.get('files', [])
+                3. If result is None:
+                4. folders = [] (empty list)
+
+
+            **Phase 5: Recurse for Children**
+                1. For each folder in folders:
+                2. Recursively call get_folder_tree() with:
+                        - folder_id: folder['id']
+                        - max_depth: max_depth (unchanged)
+                        - current_depth: current_depth + 1
+                    a. Store result in folder['children']
+                    b. Will be list or None
+
+
+            **Phase 6: Return Tree**
+                1. Return folders list with populated children
+
 
         Interactions:
             - **_execute_file_list_query()**: Query folders

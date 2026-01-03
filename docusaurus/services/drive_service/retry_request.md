@@ -1,15 +1,15 @@
 ---
-id: "_retry_request"
+id: "retry_request"
 sidebar_position: 8
-title: "_retry_request"
+title: "retry_request"
 ---
 
-# ⚙️ _retry_request
+# ⚙️ retry_request
 
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 509
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 519
 :::
 
 Execute API request with exponential backoff retry logic.
@@ -30,38 +30,42 @@ transient failures. Handles rate limits, timeouts, and server errors.
 
 ## Algorithm
 
-  - 1. **Retry Loop**:
-    - a. For attempt in range(max_retries):
-    - i. Attempt index: 0 to max_retries-1
+- **Phase 1: Retry Loop**
+  - 1. For attempt in range(max_retries):
+  - 2. Attempt index: 0 to max_retries-1
 
-  - 2. **Try Request Execution**:
-    - a. Enter try block
-    - b. Call request_func() to execute API request
-    - c. If successful, return result immediately
 
-  - 3. **Handle Errors**:
-    - a. Catch TimeoutError, HttpError, or generic Exception
-    - b. Determine if error is retryable:
-    - i. TimeoutError: Always retryable
-    - ii. HttpError with status 429 (rate limit): Retryable
-    - iii. HttpError with status 500/503 (server error): Retryable
-    - iv. Other HttpError: Not retryable
-    - v. Other Exception: Retryable if not last attempt
+- **Phase 2: Try Request Execution**
+  - 1. Enter try block
+  - 2. Call request_func() to execute API request
+  - 3. If successful, return result immediately
 
-  - 4. **Retry Decision**:
-    - a. If should_retry AND not last attempt:
-    - i. Calculate delay: self.retry_delay * (2 ** attempt)
+
+- **Phase 3: Handle Errors**
+  - 1. Catch TimeoutError, HttpError, or generic Exception
+  - 2. Determine if error is retryable:
+  - 3. TimeoutError: Always retryable
+    - a. HttpError with status 429 (rate limit): Retryable
+    - b. HttpError with status 500/503 (server error): Retryable
+    - c. Other HttpError: Not retryable
+  - 4. Other Exception: Retryable if not last attempt
+
+
+- **Phase 4: Retry Decision**
+  - 1. If should_retry AND not last attempt:
+  - 2. Calculate delay: self.retry_delay * (2 ** attempt)
     - - Attempt 0: 1s, Attempt 1: 2s, Attempt 2: 4s, etc.
-    - ii. Print retry message with operation, attempt, delay
-    - iii. Sleep for calculated delay
-    - iv. Continue to next iteration
-    - b. If final attempt or non-retryable:
-    - i. Print final error message
-    - ii. Return None (failure)
+    - a. Print retry message with operation, attempt, delay
+    - b. Sleep for calculated delay
+    - c. Continue to next iteration
+  - 3. If final attempt or non-retryable:
+  - 4. Print final error message
+    - a. Return None (failure)
 
-  - 5. **Exhausted Retries**:
-    - a. If loop completes without return
-    - b. Return None (all retries failed)
+
+- **Phase 5: Exhausted Retries**
+  - 1. If loop completes without return
+  - 2. Return None (all retries failed)
 
 ## Interactions
 

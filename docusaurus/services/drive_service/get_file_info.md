@@ -9,7 +9,7 @@ title: "get_file_info"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 933
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 948
 :::
 
 Get detailed metadata for a specific file or folder.
@@ -40,37 +40,43 @@ frequently accessed files.
 
 ## Algorithm
 
-  - 1. **Try LRU Cache** (if use_cache=True):
-    - a. Check if _cached_get_file_info exists
-    - b. Try calling _cached_get_file_info(file_id)
-    - c. If successful, return cached result
-    - d. If exception, continue to next step
+- **Phase 1: Try LRU Cache (if use_cache=True)**
+  - 1. Check if _cached_get_file_info exists
+  - 2. Try calling _cached_get_file_info(file_id)
+  - 3. If successful, return cached result
+  - 4. If exception, continue to next step
 
-  - 2. **Generate Cache Key**:
-    - a. Format: "fileinfo_&#123;file_id&#125;"
-    - b. Example: "fileinfo_1abc...xyz"
 
-  - 3. **Check Time-Based Cache** (if use_cache=True):
-    - a. Call self._get_cached(cache_key)
-    - b. If cached and not expired, return data
+- **Phase 2: Generate Cache Key**
+  - 1. Format: "fileinfo_&#123;file_id&#125;"
+  - 2. Example: "fileinfo_1abc...xyz"
 
-  - 4. **Define Request Function**:
-    - a. Create make_request() closure
-    - b. Calls service.files().get() with:
-    - i. fileId=file_id
-    - ii. fields: comprehensive field list
-    - c. Returns file metadata dictionary
 
-  - 5. **Execute with Retry**:
-    - a. Call _retry_request(make_request, operation_name)
-    - b. Returns file dict or None on failure
+- **Phase 3: Check Time-Based Cache (if use_cache=True)**
+  - 1. Call self._get_cached(cache_key)
+  - 2. If cached and not expired, return data
 
-  - 6. **Update Cache** (if result not None):
-    - a. Call _set_cache(cache_key, file)
-    - b. Stores with current timestamp
 
-  - 7. **Return Result**:
-    - a. Return file dictionary or None
+- **Phase 4: Define Request Function**
+  - 1. Create make_request() closure
+  - 2. Calls service.files().get() with:
+  - 3. fileId=file_id
+    - a. fields: comprehensive field list
+  - 4. Returns file metadata dictionary
+
+
+- **Phase 5: Execute with Retry**
+  - 1. Call _retry_request(make_request, operation_name)
+  - 2. Returns file dict or None on failure
+
+
+- **Phase 6: Update Cache (if result not None)**
+  - 1. Call _set_cache(cache_key, file)
+  - 2. Stores with current timestamp
+
+
+- **Phase 7: Return Result**
+  - 1. Return file dictionary or None
 
 ## Interactions
 

@@ -90,32 +90,41 @@ def format_algorithm(text):
 # Sample input for testing
 SAMPLE_INPUT = """
 Algorithm:
-            1. **Try Getting User Info**:
-               a. Enter try block for error handling
-               b. Call self.get_service() to get Drive service
-               c. If service is None:
-                  i. Not authenticated
-                  ii. Return empty dict {}
+            1. **Check Depth Limit**:
+               a. If current_depth >= max_depth:
+                  i. Return None (depth limit reached)
             
-            2. **Make API Call**:
-               a. Call service.about().get(fields="user").execute()
-                  i. about(): Endpoint for account info
-                  ii. get(): Retrieve information
-                  iii. fields="user": Request only user fields
-                  iv. execute(): Perform API request
-               b. Store response in about variable
+            2. **Build Query**:
+               a. Format: "'{folder_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
+               b. Filters: in folder, is folder type, not trashed
             
-            3. **Extract User Data**:
-               a. Get 'user' field from response: about.get('user', {})
-               b. Store in user variable
-               c. Extract email: user.get('emailAddress', 'unknown')
-               d. Print success message with email
-               e. Return user dictionary
+            3. **Execute Query**:
+               a. Call _execute_file_list_query() with:
+                  i. query: folder filter
+                  ii. page_size: 100
+                  iii. fields: 'files(id, name)' (minimal)
+                  iv. order_by: 'name' (alphabetical)
+               b. Returns result or None
             
-            4. **Handle Errors**:
-               a. Catch any Exception during API call
-               b. Print error message with exception details
-               c. Return empty dict {} (API call failed)
+            4. **Extract Folders**:
+               a. If result is dict:
+                  i. Get folders: result.get('files', [])
+               b. If result is None:
+                  i. folders = [] (empty list)
+            
+            5. **Recurse for Children**:
+               a. For each folder in folders:
+                  i. Recursively call get_folder_tree() with:
+                      - folder_id: folder['id']
+                      - max_depth: max_depth (unchanged)
+                      - current_depth: current_depth + 1
+                  ii. Store result in folder['children']
+                  iii. Will be list or None
+            
+            6. **Return Tree**:
+               a. Return folders list with populated children
+
+
 """
 
 if __name__ == "__main__":

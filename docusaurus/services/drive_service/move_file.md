@@ -9,7 +9,7 @@ title: "move_file"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1757
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1818
 :::
 
 Move file or folder to different parent folder.
@@ -32,33 +32,36 @@ Invalidates cache for both old and new parent folders.
 
 ## Algorithm
 
-  - 1. **Define Request Function**:
-    - a. Create make_request() closure
-    - b. Get current parents:
-    - i. Call service.files().get(fileId, fields='parents')
-    - ii. Extract parents list
-    - iii. Join with commas: ",".join(parents)
-    - c. Update file:
-    - i. Call service.files().update()
-    - ii. addParents: new_parent_id
-    - iii. removeParents: previous_parents (comma-separated)
-    - iv. fields: 'id, parents'
-    - d. Execute and return
+- **Phase 1: Define Request Function**
+  - 1. Create make_request() closure
+  - 2. Get current parents:
+  - 3. Call service.files().get(fileId, fields='parents')
+    - a. Extract parents list
+    - b. Join with commas: ",".join(parents)
+  - 4. Update file:
+  - 5. Call service.files().update()
+    - a. addParents: new_parent_id
+    - b. removeParents: previous_parents (comma-separated)
+    - c. fields: 'id, parents'
+  - 6. Execute and return
 
-  - 2. **Execute with Retry**:
-    - a. Call _retry_request(make_request, operation_name)
-    - b. Returns updated_file or None
 
-  - 3. **Invalidate Caches** (if successful):
-    - a. If updated_file not None:
-    - i. Get fresh parent list
-    - ii. Invalidate old parents:
+- **Phase 2: Execute with Retry**
+  - 1. Call _retry_request(make_request, operation_name)
+  - 2. Returns updated_file or None
+
+
+- **Phase 3: Invalidate Caches (if successful)**
+  - 1. If updated_file not None:
+  - 2. Get fresh parent list
+    - a. Invalidate old parents:
     - - Get file info to find old parents
     - - Invalidate each old parent cache
-    - iii. Invalidate new parent: _invalidate_cache(new_parent_id)
+    - b. Invalidate new parent: _invalidate_cache(new_parent_id)
 
-  - 4. **Return Result**:
-    - a. Return updated_file (success) or None (failure)
+
+- **Phase 4: Return Result**
+  - 1. Return updated_file (success) or None (failure)
 
 ## Interactions
 

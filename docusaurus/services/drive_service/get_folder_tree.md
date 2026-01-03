@@ -9,7 +9,7 @@ title: "get_folder_tree"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 2039
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 2117
 :::
 
 Recursively retrieve nested folder structure.
@@ -30,39 +30,44 @@ Useful for folder navigation UI components.
 
 ## Algorithm
 
-  - 1. **Check Depth Limit**:
-    - a. If current_depth &gt;= max_depth:
-    - i. Return None (depth limit reached)
+- **Phase 1: Check Depth Limit**
+  - 1. If current_depth &gt;= max_depth:
+  - 2. Return None (depth limit reached)
 
-  - 2. **Build Query**:
-    - a. Format: "'&#123;folder_id&#125;' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
-    - b. Filters: in folder, is folder type, not trashed
 
-  - 3. **Execute Query**:
-    - a. Call _execute_file_list_query() with:
-    - i. query: folder filter
-    - ii. page_size: 100
-    - iii. fields: 'files(id, name)' (minimal)
-    - iv. order_by: 'name' (alphabetical)
-    - b. Returns result or None
+- **Phase 2: Build Query**
+  - 1. Format: "'&#123;folder_id&#125;' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
+  - 2. Filters: in folder, is folder type, not trashed
 
-  - 4. **Extract Folders**:
-    - a. If result is dict:
-    - i. Get folders: result.get('files', [])
-    - b. If result is None:
-    - i. folders = [] (empty list)
 
-  - 5. **Recurse for Children**:
-    - a. For each folder in folders:
-    - i. Recursively call get_folder_tree() with:
+- **Phase 3: Execute Query**
+  - 1. Call _execute_file_list_query() with:
+  - 2. query: folder filter
+    - a. page_size: 100
+    - b. fields: 'files(id, name)' (minimal)
+    - c. order_by: 'name' (alphabetical)
+  - 3. Returns result or None
+
+
+- **Phase 4: Extract Folders**
+  - 1. If result is dict:
+  - 2. Get folders: result.get('files', [])
+  - 3. If result is None:
+  - 4. folders = [] (empty list)
+
+
+- **Phase 5: Recurse for Children**
+  - 1. For each folder in folders:
+  - 2. Recursively call get_folder_tree() with:
     - - folder_id: folder['id']
     - - max_depth: max_depth (unchanged)
     - - current_depth: current_depth + 1
-    - ii. Store result in folder['children']
-    - iii. Will be list or None
+    - a. Store result in folder['children']
+    - b. Will be list or None
 
-  - 6. **Return Tree**:
-    - a. Return folders list with populated children
+
+- **Phase 6: Return Tree**
+  - 1. Return folders list with populated children
 
 ## Interactions
 

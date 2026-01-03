@@ -9,7 +9,7 @@ title: "read_file_content"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1566
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1615
 :::
 
 Download and read file content as UTF-8 text.
@@ -29,38 +29,44 @@ Suitable for text files, code, JSON, etc.
 
 ## Algorithm
 
-  - 1. **Try Download Process**:
-    - a. Enter try block for error handling
+- **Phase 1: Try Download Process**
+  - 1. Enter try block for error handling
 
-  - 2. **Create Download Request**:
-    - a. Call service.files().get_media(fileId=file_id)
-    - b. Returns media download request
 
-  - 3. **Setup Download Buffer**:
-    - a. Create BytesIO buffer: file = io.BytesIO()
-    - b. In-memory buffer for file content
+- **Phase 2: Create Download Request**
+  - 1. Call service.files().get_media(fileId=file_id)
+  - 2. Returns media download request
 
-  - 4. **Create Downloader**:
-    - a. Instantiate MediaIoBaseDownload(file, request)
-    - b. Handles chunked download
 
-  - 5. **Download Loop**:
-    - a. Set done = False
-    - b. While done is False:
-    - i. Call downloader.next_chunk()
-    - ii. Returns (status, done)
-    - iii. status contains progress info
-    - iv. done=True when complete
+- **Phase 3: Setup Download Buffer**
+  - 1. Create BytesIO buffer: file = io.BytesIO()
+  - 2. In-memory buffer for file content
 
-  - 6. **Decode Content**:
-    - a. Get bytes: file.getvalue()
-    - b. Decode: .decode('utf-8')
-    - c. Return decoded string
 
-  - 7. **Handle Errors**:
-    - a. Catch any Exception
-    - b. Print error message
-    - c. Return None
+- **Phase 4: Create Downloader**
+  - 1. Instantiate MediaIoBaseDownload(file, request)
+  - 2. Handles chunked download
+
+
+- **Phase 5: Download Loop**
+  - 1. Set done = False
+  - 2. While done is False:
+  - 3. Call downloader.next_chunk()
+    - a. Returns (status, done)
+    - b. status contains progress info
+    - c. done=True when complete
+
+
+- **Phase 6: Decode Content**
+  - 1. Get bytes: file.getvalue()
+  - 2. Decode: .decode('utf-8')
+  - 3. Return decoded string
+
+
+- **Phase 7: Handle Errors**
+  - 1. Catch any Exception
+  - 2. Print error message
+  - 3. Return None
 
 ## Interactions
 

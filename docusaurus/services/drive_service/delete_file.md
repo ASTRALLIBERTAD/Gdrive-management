@@ -9,7 +9,7 @@ title: "delete_file"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1945
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 2015
 :::
 
 Permanently delete file or folder from Drive.
@@ -27,33 +27,37 @@ Deletes file and invalidates all related caches. Cannot be undone.
 
 ## Algorithm
 
-  - 1. **Get File Info First**:
-    - a. Call get_file_info(file_id, use_cache=False)
-    - b. Need parent info for cache invalidation
-    - c. Store in file_info
+- **Phase 1: Get File Info First**
+  - 1. Call get_file_info(file_id, use_cache=False)
+  - 2. Need parent info for cache invalidation
+  - 3. Store in file_info
 
-  - 2. **Define Request Function**:
-    - a. Create make_request() closure
-    - b. Call service.files().delete(fileId=file_id)
-    - c. Execute request (returns None on success)
-    - d. Return True to indicate success
 
-  - 3. **Execute with Retry**:
-    - a. Call _retry_request(make_request, operation_name)
-    - b. Returns True or None
-    - c. Store in success variable
+- **Phase 2: Define Request Function**
+  - 1. Create make_request() closure
+  - 2. Call service.files().delete(fileId=file_id)
+  - 3. Execute request (returns None on success)
+  - 4. Return True to indicate success
 
-  - 4. **Invalidate Caches** (if successful):
-    - a. If success is True:
-    - i. If file_info exists and has 'parents':
+
+- **Phase 3: Execute with Retry**
+  - 1. Call _retry_request(make_request, operation_name)
+  - 2. Returns True or None
+  - 3. Store in success variable
+
+
+- **Phase 4: Invalidate Caches (if successful)**
+  - 1. If success is True:
+  - 2. If file_info exists and has 'parents':
     - - For each parent in file_info['parents']:
     - - Call _invalidate_cache(parent)
-    - ii. Call _invalidate_cache(file_id)
-    - iii. Return True
+    - a. Call _invalidate_cache(file_id)
+    - b. Return True
 
-  - 5. **Return Failure**:
-    - a. If success is None or False:
-    - i. Return False
+
+- **Phase 5: Return Failure**
+  - 1. If success is None or False:
+  - 2. Return False
 
 ## Interactions
 

@@ -9,7 +9,7 @@ title: "rename_file"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1859
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1925
 :::
 
 Rename file or folder without moving.
@@ -33,27 +33,30 @@ Invalidates parent folder cache.
 
 ## Algorithm
 
-  - 1. **Define Request Function**:
-    - a. Create make_request() closure
-    - b. Build metadata: file_metadata = &#123;'name': new_name&#125;
-    - c. Call service.files().update() with:
-    - i. fileId: file_id
-    - ii. body: file_metadata
-    - iii. fields: 'id, name, parents'
-    - d. Execute and return
+- **Phase 1: Define Request Function**
+  - 1. Create make_request() closure
+  - 2. Build metadata: file_metadata = &#123;'name': new_name&#125;
+  - 3. Call service.files().update() with:
+  - 4. fileId: file_id
+    - a. body: file_metadata
+    - b. fields: 'id, name, parents'
+  - 5. Execute and return
 
-  - 2. **Execute with Retry**:
-    - a. Call _retry_request(make_request, operation_name)
-    - b. Returns updated_file or None
 
-  - 3. **Invalidate Caches** (if successful):
-    - a. If updated_file not None:
-    - i. For each parent in updated_file['parents']:
-    - - Call _invalidate_cache(parent)
-    - ii. Call _invalidate_cache(file_id)
+- **Phase 2: Execute with Retry**
+  - 1. Call _retry_request(make_request, operation_name)
+  - 2. Returns updated_file or None
 
-  - 4. **Return Result**:
-    - a. Return updated_file (success) or None (failure)
+
+- **Phase 3: Invalidate Caches (if successful)**
+  - 1. If updated_file not None:
+  - 2. For each parent in updated_file['parents']:
+  - 3. Call _invalidate_cache(parent)
+  - 4. Call _invalidate_cache(file_id)
+
+
+- **Phase 4: Return Result**
+  - 1. Return updated_file (success) or None (failure)
 
 ## Interactions
 

@@ -9,7 +9,7 @@ title: "list_files"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 703
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 718
 :::
 
 List files and folders in a Drive folder with caching.
@@ -34,39 +34,39 @@ to reduce API calls. Supports pagination for large folders.
 
 ## Algorithm
 
-  - 1. **Generate Cache Key**:
-    - a. Format: "files_&#123;folder_id&#125;_&#123;page_size&#125;_&#123;page_token&#125;"
-    - b. Example: "files_root_100_None"
+- **Phase 1: Generate Cache Key**:
+  - 1. Format: "files_&#123;folder_id&#125;_&#123;page_size&#125;_&#123;page_token&#125;"
+  - 2. Example: "files_root_100_None"
 
-  - 2. **Check Cache** (if use_cache=True):
-    - a. Call self._get_cached(cache_key)
-    - b. If cached data exists and not expired:
-    - i. Print cache hit message
-    - ii. Return cached data immediately
+- **Phase 2: Check Cache** (if use_cache=True):
+  - 1. Call self._get_cached(cache_key)
+  - 2. If cached data exists and not expired:
+    - a. Print cache hit message
+    - b. Return cached data immediately
 
-  - 3. **Build Query**:
-    - a. Format: "'&#123;folder_id&#125;' in parents and trashed=false"
-    - b. Filters: folder contains file, not in trash
+- **Phase 3: Build Query**:
+  - 1. Format: "'&#123;folder_id&#125;' in parents and trashed=false"
+  - 2. Filters: folder contains file, not in trash
 
-  - 4. **Execute API Request**:
-    - a. Call _execute_file_list_query() with query and parameters
-    - b. Returns raw API response or None
+- **Phase 4: Execute API Request**:
+  - 1. Call _execute_file_list_query() with query and parameters
+  - 2. Returns raw API response or None
 
-  - 5. **Process Response**:
-    - a. If result is None:
-    - i. API call failed
-    - ii. Return None
-    - b. If result is dict:
-    - i. Extract 'files' list (empty list if missing)
-    - ii. Extract 'nextPageToken' (None if last page)
-    - iii. Create formatted_result dict
+- **Phase 5: Process Response**:
+  - 1. If result is None:
+    - a. API call failed
+    - b. Return None
+  - 2. If result is dict:
+    - a. Extract 'files' list (empty list if missing)
+    - b. Extract 'nextPageToken' (None if last page)
+    - c. Create formatted_result dict
 
-  - 6. **Update Cache**:
-    - a. Call _set_cache(cache_key, formatted_result)
-    - b. Stores result with current timestamp
+- **Phase 6: Update Cache**:
+  - 1. Call _set_cache(cache_key, formatted_result)
+  - 2. Stores result with current timestamp
 
-  - 7. **Return Result**:
-    - a. Return formatted_result dictionary
+- **Phase 7: Return Result**:
+  - 1. Return formatted_result dictionary
 
 ## Interactions
 

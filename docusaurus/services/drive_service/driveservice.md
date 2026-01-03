@@ -6,7 +6,7 @@ title: "DriveService"
 
 # 📦 DriveService
 
-![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
+![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-20%25-red)
 
 :::info Source
 **File:** [`drive_service.py`](./drive_service.py) | **Line:** 29
@@ -42,6 +42,46 @@ improves reliability through retry logic for rate limits and server errors.
 - **`_cache_ttl`** (int): Cache time-to-live in seconds. Cached data expires after this duration. Default: 300 seconds (5 minutes).
 - **`_cached_get_file_info`** (Callable): LRU-cached wrapper for get_file_info. Maxsize: 128 entries. Provides additional caching layer for frequently accessed file metadata.
 
+## Algorithm
+
+- **Phase 1: Initialization**
+  - 1. Store authenticated Drive API service
+  - 2. Initialize cache dictionary and TTL settings
+  - 3. Configure retry parameters (max attempts, base delay)
+  - 4. Setup LRU caches for file info operations
+
+- **Phase 2: Read Operations** (list, search, get)
+  - 1. Generate cache key from operation parameters
+  - 2. Check cache for unexpired data
+  - 3. If cache hit, return cached data immediately
+  - 4. If cache miss, execute API request with retry
+  - 5. Store successful result in cache with timestamp
+  - 6. Return result to caller
+
+- **Phase 3: Write Operations** (create, upload, update, delete)
+  - 1. Execute mutation with retry logic
+  - 2. On success, invalidate affected cache entries
+  - 3. Invalidate parent folder caches
+  - 4. Clear related LRU cache entries
+  - 5. Return operation result
+
+- **Phase 4: Retry Logic** (automatic on failures)
+  - 1. Attempt API request
+  - 2. On transient error (429, 500, 503, timeout):
+    - a. Calculate delay: base * (2 ** attempt)
+    - b. Sleep for calculated delay
+    - c. Retry request
+  - 3. On permanent error or max retries:
+    - a. Log error
+    - b. Return None or appropriate failure value
+
+- **Phase 5: Cache Management**
+  - 1. Cache entries include timestamp
+  - 2. On read, check if timestamp + TTL > now
+  - 3. If expired, delete entry and treat as cache miss
+  - 4. On mutation, invalidate specific folder or all caches
+  - 5. LRU cache cleared on invalidation
+
 ## Interactions
 
 - **googleapiclient.discovery.Resource**: Drive API service from GoogleAuth
@@ -51,40 +91,6 @@ improves reliability through retry logic for rate limits and server errors.
 - **functools.lru_cache**: LRU caching decorator
 - **utils.common.extract_drive_id**: URL parsing utility
 - **utils.common.format_file_size**: Size formatting utility
-- Algorithm (High-Level Workflow):
-- *Phase 1: Initialization**
-- 1. Store authenticated Drive API service
-- 2. Initialize cache dictionary and TTL settings
-- 3. Configure retry parameters (max attempts, base delay)
-- 4. Setup LRU caches for file info operations
-- *Phase 2: Read Operations** (list, search, get)
-- 1. Generate cache key from operation parameters
-- 2. Check cache for unexpired data
-- 3. If cache hit, return cached data immediately
-- 4. If cache miss, execute API request with retry
-- 5. Store successful result in cache with timestamp
-- 6. Return result to caller
-- *Phase 3: Write Operations** (create, upload, update, delete)
-- 1. Execute mutation with retry logic
-- 2. On success, invalidate affected cache entries
-- 3. Invalidate parent folder caches
-- 4. Clear related LRU cache entries
-- 5. Return operation result
-- *Phase 4: Retry Logic** (automatic on failures)
-- 1. Attempt API request
-- 2. On transient error (429, 500, 503, timeout):
-- a. Calculate delay: base * (2 ** attempt)
-- b. Sleep for calculated delay
-- c. Retry request
-- 3. On permanent error or max retries:
-- a. Log error
-- b. Return None or appropriate failure value
-- *Phase 5: Cache Management**
-- 1. Cache entries include timestamp
-- 2. On read, check if timestamp + TTL > now
-- 3. If expired, delete entry and treat as cache miss
-- 4. On mutation, invalidate specific folder or all caches
-- 5. LRU cache cleared on invalidation
 
 ## Example
 

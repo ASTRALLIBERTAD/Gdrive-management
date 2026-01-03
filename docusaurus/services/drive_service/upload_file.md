@@ -9,7 +9,7 @@ title: "upload_file"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1305
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1337
 :::
 
 Upload a file to Google Drive with progress tracking.
@@ -38,52 +38,60 @@ Supports progress callbacks for UI updates.
 
 ## Algorithm
 
-  - 1. **Try Upload Process**:
-    - a. Enter try block for error handling
+- **Phase 1: Try Upload Process**
+  - 1. Enter try block for error handling
 
-  - 2. **Determine File Name**:
-    - a. If file_name not provided:
-    - i. Import os module
-    - ii. Extract basename: os.path.basename(file_path)
-    - iii. Use as file_name
 
-  - 3. **Build Metadata**:
-    - a. Create file_metadata dictionary:
-    - i. name: file_name
-    - ii. parents: [parent_id]
+- **Phase 2: Determine File Name**
+  - 1. If file_name not provided:
+  - 2. Import os module
+    - a. Extract basename: os.path.basename(file_path)
+    - b. Use as file_name
 
-  - 4. **Create Media Upload**:
-    - a. Instantiate MediaFileUpload(file_path, resumable=True)
-    - b. resumable=True enables chunked upload
-    - c. Automatically detects MIME type
 
-  - 5. **Create Upload Request**:
-    - a. Call service.files().create() with:
-    - i. body: file_metadata
-    - ii. media_body: media object
-    - iii. fields: comprehensive field list
-    - b. Returns upload request object
+- **Phase 3: Build Metadata**
+  - 1. Create file_metadata dictionary:
+  - 2. name: file_name
+    - a. parents: [parent_id]
 
-  - 6. **Upload with Progress**:
-    - a. Initialize response = None
-    - b. While response is None:
-    - i. Call request.next_chunk()
-    - ii. Returns (status, response)
-    - iii. If status exists and progress_callback:
+
+- **Phase 4: Create Media Upload**
+  - 1. Instantiate MediaFileUpload(file_path, resumable=True)
+  - 2. resumable=True enables chunked upload
+  - 3. Automatically detects MIME type
+
+
+- **Phase 5: Create Upload Request**
+  - 1. Call service.files().create() with:
+  - 2. body: file_metadata
+    - a. media_body: media object
+    - b. fields: comprehensive field list
+  - 3. Returns upload request object
+
+
+- **Phase 6: Upload with Progress**
+  - 1. Initialize response = None
+  - 2. While response is None:
+  - 3. Call request.next_chunk()
+    - a. Returns (status, response)
+    - b. If status exists and progress_callback:
     - - Call progress_callback(status.resumable_progress, status.total_size)
-    - iv. Continue until upload complete
+    - c. Continue until upload complete
 
-  - 7. **Invalidate Cache**:
-    - a. Call _invalidate_cache(parent_id)
-    - b. Updates parent folder cache
 
-  - 8. **Return Response**:
-    - a. Return uploaded file info
+- **Phase 7: Invalidate Cache**
+  - 1. Call _invalidate_cache(parent_id)
+  - 2. Updates parent folder cache
 
-  - 9. **Handle Errors**:
-    - a. Catch any Exception
-    - b. Print error message
-    - c. Return None
+
+- **Phase 8: Return Response**
+  - 1. Return uploaded file info
+
+
+- **Phase 9: Handle Errors**
+  - 1. Catch any Exception
+  - 2. Print error message
+  - 3. Return None
 
 ## Interactions
 

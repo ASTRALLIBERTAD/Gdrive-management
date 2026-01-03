@@ -1,15 +1,15 @@
 ---
-id: "_set_cache"
+id: "set_cache"
 sidebar_position: 6
-title: "_set_cache"
+title: "set_cache"
 ---
 
-# ⚙️ _set_cache
+# ⚙️ set_cache
 
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 388
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 395
 :::
 
 Store data in cache with current timestamp.
@@ -29,13 +29,13 @@ Cache entries automatically expire based on age.
 
 ## Algorithm
 
-  - 1. **Create Cache Entry**:
-    - a. Get current timestamp: datetime.now()
-    - b. Create tuple: (data, timestamp)
+- **Phase 1: Create Cache Entry**:
+  - 1. Get current timestamp: datetime.now()
+  - 2. Create tuple: (data, timestamp)
 
-  - 2. **Store in Cache**:
-    - a. Assign tuple to self._cache[key]
-    - b. Overwrites existing entry if present
+- **Phase 2: Store in Cache**:
+  - 1. Assign tuple to self._cache[key]
+  - 2. Overwrites existing entry if present
 
 ## Interactions
 

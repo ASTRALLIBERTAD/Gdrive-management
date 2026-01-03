@@ -1,15 +1,15 @@
 ---
-id: "_execute_file_mutation"
+id: "execute_file_mutation"
 sidebar_position: 14
-title: "_execute_file_mutation"
+title: "execute_file_mutation"
 ---
 
-# ⚙️ _execute_file_mutation
+# ⚙️ execute_file_mutation
 
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1153
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1180
 :::
 
 Execute file mutation operation with retry and cache invalidation.
@@ -31,18 +31,20 @@ retry logic and automatic cache invalidation to maintain consistency.
 
 ## Algorithm
 
-  - 1. **Execute with Retry**:
-    - a. Call _retry_request(request_func, operation_name)
-    - b. Returns result or None on failure
+- **Phase 1: Execute with Retry**
+  - 1. Call _retry_request(request_func, operation_name)
+  - 2. Returns result or None on failure
 
-  - 2. **Invalidate Cache** (if successful and parent_id):
-    - a. If result is not None AND parent_id provided:
-    - i. Call _invalidate_cache(parent_id)
-    - ii. Clears cache entries for affected folder
-    - iii. Maintains consistency with Drive state
 
-  - 3. **Return Result**:
-    - a. Return result (success) or None (failure)
+- **Phase 2: Invalidate Cache (if successful and parent_id)**
+  - 1. If result is not None AND parent_id provided:
+  - 2. Call _invalidate_cache(parent_id)
+    - a. Clears cache entries for affected folder
+    - b. Maintains consistency with Drive state
+
+
+- **Phase 3: Return Result**
+  - 1. Return result (success) or None (failure)
 
 ## Interactions
 

@@ -9,7 +9,7 @@ title: "update_file"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1458
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1500
 :::
 
 Update existing file's content and optionally rename.
@@ -35,38 +35,44 @@ rename file in single operation.
 
 ## Algorithm
 
-  - 1. **Try Update Process**:
-    - a. Enter try block for error handling
+- **Phase 1: Try Update Process**
+  - 1. Enter try block for error handling
 
-  - 2. **Build Metadata**:
-    - a. Create empty file_metadata dictionary
-    - b. If new_name provided:
-    - i. Add to metadata: file_metadata['name'] = new_name
 
-  - 3. **Create Media Upload**:
-    - a. Instantiate MediaFileUpload(file_path, resumable=True)
-    - b. Loads new file content
+- **Phase 2: Build Metadata**
+  - 1. Create empty file_metadata dictionary
+  - 2. If new_name provided:
+  - 3. Add to metadata: file_metadata['name'] = new_name
 
-  - 4. **Execute Update**:
-    - a. Call service.files().update() with:
-    - i. fileId: file_id
-    - ii. body: file_metadata (name if provided)
-    - iii. media_body: media object
-    - iv. fields: 'id, name, mimeType, modifiedTime'
-    - b. Execute request
-    - c. Returns updated file dict
 
-  - 5. **Invalidate Cache**:
-    - a. Call _invalidate_cache(file_id)
-    - b. Clears cached file info
+- **Phase 3: Create Media Upload**
+  - 1. Instantiate MediaFileUpload(file_path, resumable=True)
+  - 2. Loads new file content
 
-  - 6. **Return Result**:
-    - a. Return updated_file dictionary
 
-  - 7. **Handle Errors**:
-    - a. Catch any Exception
-    - b. Print error message
-    - c. Return None
+- **Phase 4: Execute Update**
+  - 1. Call service.files().update() with:
+  - 2. fileId: file_id
+    - a. body: file_metadata (name if provided)
+    - b. media_body: media object
+    - c. fields: 'id, name, mimeType, modifiedTime'
+  - 3. Execute request
+  - 4. Returns updated file dict
+
+
+- **Phase 5: Invalidate Cache**
+  - 1. Call _invalidate_cache(file_id)
+  - 2. Clears cached file info
+
+
+- **Phase 6: Return Result**
+  - 1. Return updated_file dictionary
+
+
+- **Phase 7: Handle Errors**
+  - 1. Catch any Exception
+  - 2. Print error message
+  - 3. Return None
 
 ## Interactions
 

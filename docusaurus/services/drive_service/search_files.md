@@ -9,7 +9,7 @@ title: "search_files"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 826
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 841
 :::
 
 Search for files by name across Drive or within folder.
@@ -32,38 +32,38 @@ Can search globally or within a specific folder.
 
 ## Algorithm
 
-  - 1. **Generate Cache Key**:
-    - a. Format: "search_&#123;query_text&#125;_&#123;folder_id&#125;"
-    - b. Example: "search_assignment_None"
+- **Phase 1: Generate Cache Key**:
+  - 1. Format: "search_&#123;query_text&#125;_&#123;folder_id&#125;"
+  - 2. Example: "search_assignment_None"
 
-  - 2. **Check Cache** (if use_cache=True):
-    - a. Call self._get_cached(cache_key)
-    - b. If cached, return immediately
+- **Phase 2: Check Cache** (if use_cache=True):
+  - 1. Call self._get_cached(cache_key)
+  - 2. If cached, return immediately
 
-  - 3. **Build Search Query**:
-    - a. Base: "name contains '&#123;query_text&#125;' and trashed=false"
-    - b. If folder_id provided:
-    - i. Append: " and '&#123;folder_id&#125;' in parents"
-    - ii. Limits search to folder
+- **Phase 3: Build Search Query**:
+  - 1. Base: "name contains '&#123;query_text&#125;' and trashed=false"
+  - 2. If folder_id provided:
+    - a. Append: " and '&#123;folder_id&#125;' in parents"
+    - b. Limits search to folder
 
-  - 4. **Execute Search**:
-    - a. Call _execute_file_list_query() with:
-    - i. query: search criteria
-    - ii. page_size: 50 (smaller for searches)
-    - iii. fields: minimal set (id, name, mimeType, modifiedTime, parents)
-    - b. Returns API response or None
+- **Phase 4: Execute Search**:
+  - 1. Call _execute_file_list_query() with:
+    - a. query: search criteria
+    - b. page_size: 50 (smaller for searches)
+    - c. fields: minimal set (id, name, mimeType, modifiedTime, parents)
+  - 2. Returns API response or None
 
-  - 5. **Extract Files**:
-    - a. If result is dict:
-    - i. Extract files: result.get('files', [])
-    - b. If result is None:
-    - i. files = [] (empty list)
+- **Phase 5: Extract Files**:
+  - 1. If result is dict:
+    - a. Extract files: result.get('files', [])
+  - 2. If result is None:
+    - a. files = [] (empty list)
 
-  - 6. **Update Cache** (if use_cache and files found):
-    - a. Call _set_cache(cache_key, files)
+- **Phase 6: Update Cache** (if use_cache and files found):
+  - 1. Call _set_cache(cache_key, files)
 
-  - 7. **Return Results**:
-    - a. Return files list (may be empty)
+- **Phase 7: Return Results**:
+  - 1. Return files list (may be empty)
 
 ## Interactions
 

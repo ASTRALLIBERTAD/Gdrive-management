@@ -9,7 +9,7 @@ title: "find_file"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1675
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 1732
 :::
 
 Find file by exact name in specific folder.
@@ -34,28 +34,31 @@ Case-sensitive search.
 
 ## Algorithm
 
-  - 1. **Build Query**:
-    - a. Format: "name = '&#123;name&#125;' and '&#123;parent_id&#125;' in parents and trashed=false"
-    - b. Exact name match (case-sensitive)
-    - c. Must be in specified parent
-    - d. Must not be trashed
+- **Phase 1: Build Query**
+  - 1. Format: "name = '&#123;name&#125;' and '&#123;parent_id&#125;' in parents and trashed=false"
+  - 2. Exact name match (case-sensitive)
+  - 3. Must be in specified parent
+  - 4. Must not be trashed
 
-  - 2. **Execute Query**:
-    - a. Call service.files().list() with:
-    - i. q: query string
-    - ii. pageSize: 1 (only need first match)
-    - iii. fields: minimal set
-    - b. Execute request
-    - c. Returns results dictionary
 
-  - 3. **Extract Files**:
-    - a. Get files list: results.get('files', [])
+- **Phase 2: Execute Query**
+  - 1. Call service.files().list() with:
+  - 2. q: query string
+    - a. pageSize: 1 (only need first match)
+    - b. fields: minimal set
+  - 3. Execute request
+  - 4. Returns results dictionary
 
-  - 4. **Return Result**:
-    - a. If files list not empty:
-    - i. Return files[0] (first match)
-    - b. If files list empty:
-    - i. Return None (not found)
+
+- **Phase 3: Extract Files**
+  - 1. Get files list: results.get('files', [])
+
+
+- **Phase 4: Return Result**
+  - 1. If files list not empty:
+  - 2. Return files[0] (first match)
+  - 3. If files list empty:
+  - 4. Return None (not found)
 
 ## Interactions
 

@@ -9,7 +9,7 @@ title: "_get_cached"
 ![Has Examples](https://img.shields.io/badge/Examples-✓-green) ![Has Algorithm](https://img.shields.io/badge/Algorithm-✓-blue) ![Completeness](https://img.shields.io/badge/Docs-60%25-orange)
 
 :::info Source
-**File:** [`drive_service.py`](./drive_service.py) | **Line:** 319
+**File:** [`drive_service.py`](./drive_service.py) | **Line:** 323
 :::
 
 Retrieve data from time-based cache if not expired.
@@ -30,27 +30,29 @@ Checks if cached data exists and is still valid based on TTL
 
 ## Algorithm
 
-  - 1. **Check Key Existence**:
-    - a. If key in self._cache dictionary:
-    - i. Proceed to validation
-    - b. If key not in cache:
-    - i. Return None (cache miss)
+- **Phase 1: Check Key Existence**
+  - 1. If key in self._cache dictionary:
+  - 2. Proceed to validation
+  - 3. If key not in cache:
+  - 4. Return None (cache miss)
 
-  - 2. **Extract Cache Entry**:
-    - a. Get tuple from cache: (data, timestamp)
-    - b. data: The cached response data
-    - c. timestamp: datetime when cached
 
-  - 3. **Validate Timestamp**:
-    - a. Calculate age: datetime.now() - timestamp
-    - b. Compare age to self._cache_ttl
-    - c. If age < cache_ttl:
-    - i. Data still valid
-    - ii. Return data
-    - d. If age &gt;= cache_ttl:
-    - i. Data expired
-    - ii. Delete cache entry
-    - iii. Return None (expired)
+- **Phase 2: Extract Cache Entry**
+  - 1. Get tuple from cache: (data, timestamp)
+  - 2. data: The cached response data
+  - 3. timestamp: datetime when cached
+
+
+- **Phase 3: Validate Timestamp**
+  - 1. Calculate age: datetime.now() - timestamp
+  - 2. Compare age to self._cache_ttl
+  - 3. If age < cache_ttl:
+  - 4. Data still valid
+    - a. Return data
+  - 5. If age &gt;= cache_ttl:
+  - 6. Data expired
+    - a. Delete cache entry
+    - b. Return None (expired)
 
 ## Interactions
 
